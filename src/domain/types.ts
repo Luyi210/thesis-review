@@ -10,6 +10,7 @@ export interface Paragraph {
   toc: boolean; inTable: boolean; excluded: boolean; caption: boolean;
   lineRule: string | null; lineTwips: number | null; page?: number; bbox?: number[];
   previewText?: string;
+  pdfRegion?: 'running' | 'footnote' | 'caption' | 'table';
 }
 export interface Limitation { code: string; message: string; affectsPresence: boolean; page?: number }
 export interface ObjectEvidence {

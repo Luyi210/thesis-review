@@ -103,3 +103,25 @@ export function feedbackExport(entries: FeedbackEntry[]) {
   return { schema: 'thesis-teacher-feedback/1', exportedAt: new Date().toISOString(),
     source: 'local_review', records: entries };
 }
+
+// A teacher's own wording, paired with the specific finding they confirmed.
+// The document hash identifies a revision. Group related revisions together
+// during dataset curation, before assigning any training or evaluation split.
+export function teacherRewriteDraft(entries: FeedbackEntry[]) {
+  const examples = entries.flatMap(entry => {
+    if (entry.type !== 'finding' || entry.itemIndex < 0 || !entry.evidence.executed ||
+        entry.labels.accuracy !== 'correct' || entry.labels.advice !== 'rewrite') return [];
+    const rewrite = entry.labels.replacement.trim();
+    if (!rewrite || !entry.evidence.location) return [];
+    const { location, formatSpan, status, observed, expected, reason } = entry.evidence;
+    const { fileHash, stage, kind, format, engine, ruleVersion } = entry.report;
+    return [{
+      documentVersion: fileHash, stage, kind, format, engine, ruleVersion, rule: entry.rule,
+      itemIndex: entry.itemIndex, evidence: { status, observed, expected, reason,
+        location: { page: location.page, paragraph: location.paragraph, section: location.section, objectId: location.objectId },
+        selectedText: formatSpan?.text ?? location.excerpt, truncated: formatSpan?.truncated },
+      teacherAdvice: rewrite,
+    }];
+  });
+  return { schema: 'thesis-teacher-rewrite-draft/1', examples };
+}

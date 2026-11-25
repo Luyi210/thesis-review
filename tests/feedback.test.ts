@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { emptyLabels, feedbackExport, FEEDBACK_LIMIT, reportMissed, reviewFinding, saveFeedback, suggestionSnapshot } from '../src/domain/feedback';
+import { emptyLabels, feedbackExport, FEEDBACK_LIMIT, reportMissed, reviewFinding, saveFeedback, suggestionSnapshot, teacherRewriteDraft } from '../src/domain/feedback';
 import type { Check, Report } from '../src/domain/types';
 
 const check: Check = {
@@ -76,5 +76,21 @@ describe('local teacher feedback', () => {
     const full = Array.from({ length: FEEDBACK_LIMIT }, (_, i) => ({ ...record, key: String(i) }));
     expect(() => saveFeedback(full, record)).toThrow(/先导出/);
     expect(saveFeedback(full, { ...record, key: '1' })).toHaveLength(FEEDBACK_LIMIT);
+  });
+  it('pairs only a confirmed occurrence with an explicit teacher rewrite', () => {
+    const labels = { ...vote, advice: 'rewrite' as const, replacement: '选中局部文字，将字号设为小四。' };
+    const confirmed = reviewFinding(report, finding(0), labels, null);
+    const skipped = [
+      first(), reviewFinding(report, finding(0), { ...labels, accuracy: 'false_positive' }, null),
+      reviewFinding(report, { check, itemIndex: -1, status: check.status }, labels, null),
+      reportMissed(report, { position: '1', ruleId: '', description: '漏掉的图题。' }),
+    ];
+    expect(teacherRewriteDraft(skipped).examples).toEqual([]);
+    const draft = teacherRewriteDraft([confirmed, ...skipped]);
+    expect(draft.examples).toHaveLength(1);
+    expect(draft.examples[0]).toMatchObject({ teacherAdvice: labels.replacement, documentVersion: 'doc-sha',
+      evidence: { selectedText: '局部', observed: '14', expected: '12 磅', status: 'fail' }, rule: { page: 6 } });
+    expect(JSON.stringify(draft)).not.toContain('首段摘录');
+    expect(JSON.stringify(draft)).not.toContain(report.document.name);
   });
 });

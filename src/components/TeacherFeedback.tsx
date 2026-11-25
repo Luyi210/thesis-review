@@ -3,7 +3,7 @@ import { LABELS, STAGES, type Report } from '../domain/types';
 import type { MarginFinding } from '../domain/marginNotes';
 import {
   FEEDBACK_TEXT_LIMIT, accuracyNames, adviceNames, checkedLabels, emptyLabels, feedbackExport,
-  findingFeedbackKey, reportMissed, reviewFinding, saveFeedback, suggestionSnapshot,
+  findingFeedbackKey, reportMissed, reviewFinding, saveFeedback, suggestionSnapshot, teacherRewriteDraft,
   type Accuracy, type AdviceRating, type AdviceSnapshot, type FeedbackEntry, type FeedbackModelAdvice,
   type MissedFinding, type ReviewedFinding, type ReviewLabels,
 } from '../domain/feedback';
@@ -212,6 +212,7 @@ export function FeedbackPanel({ report, onSelect }: {
   const [open, setOpen] = useState<string | null>(null);
   if (!session) return null;
   const visible = session.entries.filter(e => all || !report || e.report.id === report.id);
+  const draft = teacherRewriteDraft(visible);
   return <div className="feedback-panel">
     <p className="feedback-meta">反馈保存在本次页面会话，刷新前可导出。导出文件包含所评位置的原文摘录和手工意见。</p>
     {report && <details key={report.id} className="missed-feedback"><summary>登记此稿的漏报</summary>
@@ -224,6 +225,11 @@ export function FeedbackPanel({ report, onSelect }: {
       <button type="button" disabled={!session.entries.length} onClick={() => downloadJson(feedbackExport(session.entries), '教师复核反馈.json')}>
         导出全部反馈（{session.entries.length}）</button>
     </div>
+    <details className="missed-feedback"><summary>准备微调样例</summary>
+      <p className="feedback-meta">仅收录当前范围内已选“判得对”且由老师写下改法的具体批注。导出后请核对原文摘录和改写，并将同一篇论文的不同版本分在同一组。</p>
+      <button type="button" className="feedback-save" disabled={!draft.examples.length}
+        onClick={() => downloadJson(draft, '教师改写样例草案.json')}>导出教师改写（{draft.examples.length}）</button>
+    </details>
     {!visible.length && <p>此范围还没有反馈记录。</p>}
     {[...visible].reverse().map(entry => <article className="feedback-entry" key={entry.key}>
       <button type="button" aria-expanded={open === entry.key} onClick={() => setOpen(open === entry.key ? null : entry.key)}>

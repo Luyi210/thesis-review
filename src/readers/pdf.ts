@@ -4,6 +4,8 @@ import { getDocument, GlobalWorkerOptions, OPS, type PDFDocumentProxy } from 'pd
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import type { AuditDocument, Limitation, Paragraph, RulePack } from '../domain/types';
 import { cleanTitle, digest, headingInfo, headingNames, paragraph } from './shared';
+import { markPageZones, markRunningMargins, type PageBoundary } from './pdfBodyZones';
+import { pageMarks } from './pdfGraphics';
 
 GlobalWorkerOptions.workerSrc = workerUrl;
 export async function openPdf(buffer: ArrayBuffer): Promise<PDFDocumentProxy> {
@@ -19,6 +21,7 @@ export async function readPdf(buffer: ArrayBuffer, name: string, pack: RulePack,
   const pdf = await openPdf(buffer); const paragraphs: Paragraph[] = []; const sections: AuditDocument['sections'] = [];
   const limitations: Limitation[] = [{ code: 'pdf-structure', message: 'PDF按原生文字行定位；Word行距、字距、图表题注、公式及完整字数边界尚未还原。', affectsPresence: true }];
   const names = headingNames(pack); let total = 0;
+  const pages: PageBoundary[] = [];
   try {
     if (pdf.numPages > 300) throw new Error('PDF超过300页试验上限。');
     for (let number = 1; number <= pdf.numPages; number++) {
@@ -51,8 +54,9 @@ export async function readPdf(buffer: ArrayBuffer, name: string, pack: RulePack,
         [p.heading, p.level] = headingInfo(text, names);
         if (p.heading && p.level === null) p.level = 1;
         if (wideGap || !line.every(r => r.upright)) { p.heading = false; limitations.push({ code: 'pdf-complex-layout', message: `PDF第${number}页存在大间隔或旋转文字，可能为分栏/无框线表格，范围需核实。`, affectsPresence: true, page: number }); }
-        p.caption = /^[图表]\s*\d+\s*[-－—.．]\s*\d+/.test(text);
-        if (p.bbox[1] < 35 || p.bbox[3] > viewport.height - 35) p.excluded = /^[-—\s]*\d+[-—\s]*$/.test(text);
+        if ((p.bbox[1] < 35 || p.bbox[3] > viewport.height - 35) && /^[-—\s]*\d+[-—\s]*$/.test(text)) {
+          p.excluded = true; p.pdfRegion = 'running';
+        }
         paragraphs.push(p); pageParagraphs.push(p);
       }
       const leaders = pageParagraphs.filter(p => /[.．·…]{3,}\s*[\divxlcdm]+$/i.test(p.text));
@@ -60,10 +64,13 @@ export async function readPdf(buffer: ArrayBuffer, name: string, pack: RulePack,
       if (toc) pageParagraphs.forEach(p => { p.toc = true; });
       if (!items.length) limitations.push({ code: 'pdf-textless', message: `第${number}页无原生文字；网页扫描OCR尚未接入，不能据此判定材料缺失。`, affectsPresence: true, page: number });
       const operators = await page.getOperatorList();
+      markPageZones(pageParagraphs, pageMarks(operators, viewport.transform), viewport.width, viewport.height);
+      pages.push({ paragraphs: pageParagraphs, width: viewport.width, height: viewport.height });
       const imageOps = new Set([OPS.paintImageXObject, OPS.paintInlineImageXObject, OPS.paintImageMaskXObject, OPS.paintImageXObjectRepeat]);
       if (operators.fnArray.some(x => imageOps.has(x))) limitations.push({ code: 'pdf-image-content', message: `第${number}页存在图像绘制内容；图内文字和公式尚未识别。`, affectsPresence: true, page: number });
       page.cleanup();
     }
+    markRunningMargins(pages);
     return { name, format: 'pdf', sha256: await digest(buffer), bytes: buffer.byteLength, paragraphs, sections, objects: [], limitations: [...new Map(limitations.map(x => [`${x.code}:${x.page || 0}`, x])).values()], pageCount: pdf.numPages };
   } finally { await pdf.destroy(); }
 }
