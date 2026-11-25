@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+验证记录/
+
+# Local configuration and generated PDF.js resources
+.env
+.env.*
+public/pdf-assets/

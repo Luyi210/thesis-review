@@ -1,0 +1,37 @@
+{
+  "name": "college-thesis-workbench",
+  "version": "0.6.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare:assets": "node scripts/prepare-assets.mjs",
+    "dev": "vite --host 127.0.0.1 --port 5178 --strictPort",
+    "build": "node scripts/prepare-assets.mjs && tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 5178 --strictPort",
+    "test": "vitest run",
+    "evaluate:structure": "node scripts/evaluate-structure.mjs",
+    "evaluate:versions": "node scripts/evaluate-versions.mjs",
+    "build:pages": "node scripts/prepare-assets.mjs && tsc -b && vite build --base=/thesis-review/ --outDir docs"
+  },
+  "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.79",
+    "@xmldom/xmldom": "^0.8.11",
+    "docx-preview": "^0.3.6",
+    "fflate": "^0.8.2",
+    "lucide-react": "^0.468.0",
+    "pdfjs-dist": "^5.4.394",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "workbox-window": "^7.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.1",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.4",
+    "vite-plugin-pwa": "^1.1.0",
+    "vitest": "^3.2.4"
+  }
+}

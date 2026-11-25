@@ -1,0 +1,919 @@
+{
+  "id": "fudan-education-master-2026-05-26",
+  "version": "0.1.0",
+  "review_status": "draft_teacher_review_required",
+  "title": "复旦高教所教育硕士学位论文撰写指南试验规则",
+  "source": {
+    "file": "sources/撰写指南.pdf",
+    "sha256": "5c2965c8caded758c76b4580db97f9ffc96dfa696cb862d2c8bb3c26eb56d8ee",
+    "document_date": "2026-05-26",
+    "pages": 22
+  },
+  "scope_notes": [
+    "正式规则及统计口径仍待学院教师确认。",
+    "预答辩以外的阶段报告格式条款仅作试查提示。",
+    "只检测格式与要求线索，不评判学术质量，不认定正式审核通过。"
+  ],
+  "rules": [
+    {
+      "id": "FMT-A4",
+      "title": "页面采用 A4",
+      "mode": "page_size",
+      "stages": [
+        "proposal",
+        "midterm",
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 6,
+        "section": "三（四）打印与排版",
+        "quote": "纸张：统一使用 A4 纸"
+      },
+      "note": "",
+      "params": {
+        "width_mm": 210,
+        "height_mm": 297
+      }
+    },
+    {
+      "id": "FMT-FONT",
+      "title": "正文中文字体为宋体",
+      "mode": "body_font",
+      "stages": [
+        "proposal",
+        "midterm",
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 6,
+        "section": "三（四）打印与排版",
+        "quote": "正文内容使用宋体、小四号字。"
+      },
+      "note": "",
+      "params": {
+        "aliases": [
+          "宋体",
+          "SimSun"
+        ]
+      }
+    },
+    {
+      "id": "FMT-SIZE",
+      "title": "正文为小四号字（12 磅）",
+      "mode": "body_size",
+      "stages": [
+        "proposal",
+        "midterm",
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 6,
+        "section": "三（四）打印与排版",
+        "quote": "正文内容使用宋体、小四号字。"
+      },
+      "note": "",
+      "params": {
+        "expected_pt": 12
+      }
+    },
+    {
+      "id": "FMT-LINE",
+      "title": "正文行距为 20 磅",
+      "mode": "body_line",
+      "stages": [
+        "proposal",
+        "midterm",
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 6,
+        "section": "三（四）打印与排版",
+        "quote": "行距：20 磅。"
+      },
+      "note": "文件未写明固定值/最小值。首版能核对明确的固定值；最小值及多倍行距转人工确认，不擅自宣称同等或不合格。",
+      "params": {
+        "expected_pt": 20
+      }
+    },
+    {
+      "id": "FMT-SPACING",
+      "title": "字符间距为标准",
+      "mode": "body_spacing",
+      "stages": [
+        "proposal",
+        "midterm",
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 6,
+        "section": "三（四）打印与排版",
+        "quote": "字符间距：标准。"
+      },
+      "note": "",
+      "params": {
+        "expected_twips": 0
+      }
+    },
+    {
+      "id": "PROP-BACKGROUND",
+      "title": "开题材料包含研究背景",
+      "mode": "heading",
+      "stages": [
+        "proposal"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 7,
+        "section": "四（一）开题报告",
+        "quote": "研究背景；文献综述与理论基础；研究设计；初拟大纲；参考文献；研究进度安排。"
+      },
+      "note": "只检索栏目和可读内容线索；标题灵活，未命中不直接证明缺项。",
+      "params": {
+        "aliases": [
+          "研究背景",
+          "选题背景",
+          "研究缘起",
+          "研究背景与意义"
+        ],
+        "kinds": [
+          "report",
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "PROP-REVIEW",
+      "title": "开题材料包含文献综述",
+      "mode": "heading",
+      "stages": [
+        "proposal"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 7,
+        "section": "四（一）开题报告",
+        "quote": "研究背景；文献综述与理论基础；研究设计；初拟大纲；参考文献；研究进度安排。"
+      },
+      "note": "只检索栏目和可读内容线索；标题灵活，未命中不直接证明缺项。",
+      "params": {
+        "aliases": [
+          "文献综述",
+          "概念界定与文献综述",
+          "文献综述与理论基础",
+          "国内外研究现状"
+        ],
+        "kinds": [
+          "report",
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "PROP-THEORY",
+      "title": "开题材料包含理论基础",
+      "mode": "heading",
+      "stages": [
+        "proposal"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 7,
+        "section": "四（一）开题报告",
+        "quote": "研究背景；文献综述与理论基础；研究设计；初拟大纲；参考文献；研究进度安排。"
+      },
+      "note": "只检索栏目和可读内容线索；标题灵活，未命中不直接证明缺项。",
+      "params": {
+        "aliases": [
+          "理论基础",
+          "理论依据",
+          "理论框架",
+          "文献综述与理论基础"
+        ],
+        "kinds": [
+          "report",
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "PROP-DESIGN",
+      "title": "开题材料包含研究设计",
+      "mode": "heading",
+      "stages": [
+        "proposal"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 7,
+        "section": "四（一）开题报告",
+        "quote": "研究背景；文献综述与理论基础；研究设计；初拟大纲；参考文献；研究进度安排。"
+      },
+      "note": "只检索栏目和可读内容线索；标题灵活，未命中不直接证明缺项。",
+      "params": {
+        "aliases": [
+          "研究设计",
+          "研究方案"
+        ],
+        "kinds": [
+          "report",
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "PROP-OUTLINE",
+      "title": "开题材料包含初拟大纲",
+      "mode": "heading",
+      "stages": [
+        "proposal"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 7,
+        "section": "四（一）开题报告",
+        "quote": "研究背景；文献综述与理论基础；研究设计；初拟大纲；参考文献；研究进度安排。"
+      },
+      "note": "只检索栏目和可读内容线索；标题灵活，未命中不直接证明缺项。",
+      "params": {
+        "aliases": [
+          "初拟大纲",
+          "论文大纲",
+          "论文提纲",
+          "拟定大纲"
+        ],
+        "kinds": [
+          "report",
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "PROP-REFERENCES",
+      "title": "开题材料包含参考文献",
+      "mode": "heading",
+      "stages": [
+        "proposal"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 7,
+        "section": "四（一）开题报告",
+        "quote": "研究背景；文献综述与理论基础；研究设计；初拟大纲；参考文献；研究进度安排。"
+      },
+      "note": "只检索栏目和可读内容线索；标题灵活，未命中不直接证明缺项。",
+      "params": {
+        "aliases": [
+          "参考文献"
+        ],
+        "kinds": [
+          "report",
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "PROP-SCHEDULE",
+      "title": "开题材料包含研究进度安排",
+      "mode": "heading",
+      "stages": [
+        "proposal"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 7,
+        "section": "四（一）开题报告",
+        "quote": "研究背景；文献综述与理论基础；研究设计；初拟大纲；参考文献；研究进度安排。"
+      },
+      "note": "只检索栏目和可读内容线索；标题灵活，未命中不直接证明缺项。",
+      "params": {
+        "aliases": [
+          "研究进度安排",
+          "研究计划",
+          "进度安排",
+          "时间安排"
+        ],
+        "kinds": [
+          "report",
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "MID-PROGRESS",
+      "title": "中期报告说明研究进展",
+      "mode": "heading",
+      "stages": [
+        "midterm"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 7,
+        "section": "四（二）中期报告",
+        "quote": "研究进展概述；论文初稿撰写情况。"
+      },
+      "note": "",
+      "params": {
+        "aliases": [
+          "研究进展概述",
+          "研究进展",
+          "研究工作进展"
+        ],
+        "kinds": [
+          "report"
+        ]
+      }
+    },
+    {
+      "id": "MID-DRAFT",
+      "title": "中期报告说明论文初稿撰写情况",
+      "mode": "heading",
+      "stages": [
+        "midterm"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 7,
+        "section": "四（二）中期报告",
+        "quote": "研究进展概述；论文初稿撰写情况。"
+      },
+      "note": "",
+      "params": {
+        "aliases": [
+          "论文初稿撰写情况",
+          "论文撰写进度",
+          "初稿撰写情况",
+          "论文完成情况"
+        ],
+        "kinds": [
+          "report"
+        ]
+      }
+    },
+    {
+      "id": "MID-COMPLETION",
+      "title": "中期数据工作和初稿完成度需核实",
+      "mode": "manual",
+      "stages": [
+        "midterm"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 7,
+        "section": "四（二）中期报告",
+        "quote": "至中期应完成所有的数据收集和分析工作，以及初稿撰写工作的 80%以上。"
+      },
+      "note": "研究完成度不能从文件字数或出现“80%”直接判定；由教师对照研究计划、数据和章节进度核实。",
+      "params": {}
+    },
+    {
+      "id": "STRUCT-ZH-ABSTRACT",
+      "title": "预答辩论文的中文摘要",
+      "mode": "heading",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 3,
+        "section": "三、论文基本结构及撰写规范",
+        "quote": "中文摘要（关键词，中图分类号）"
+      },
+      "note": "检测栏目线索，不把参考目录的名称和顺序设为强制模板，不验证签名或内容充分性。",
+      "params": {
+        "aliases": [
+          "摘要",
+          "中文摘要"
+        ],
+        "kinds": [
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "STRUCT-EN-ABSTRACT",
+      "title": "预答辩论文的英文摘要",
+      "mode": "heading",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 3,
+        "section": "三、论文基本结构及撰写规范",
+        "quote": "英文摘要（关键词，中图分类号）"
+      },
+      "note": "检测栏目线索，不把参考目录的名称和顺序设为强制模板，不验证签名或内容充分性。",
+      "params": {
+        "aliases": [
+          "abstract",
+          "英文摘要"
+        ],
+        "kinds": [
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "STRUCT-TOC",
+      "title": "预答辩论文的目录",
+      "mode": "heading",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 3,
+        "section": "三、论文基本结构及撰写规范",
+        "quote": "应完整、准确地列出论文的章节标题、参考文献、附录、致谢等部分的起始页码。"
+      },
+      "note": "检测栏目线索，不把参考目录的名称和顺序设为强制模板，不验证签名或内容充分性。",
+      "params": {
+        "aliases": [
+          "目录"
+        ],
+        "kinds": [
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "STRUCT-GROUP",
+      "title": "预答辩论文的指导小组成员名单",
+      "mode": "heading",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 3,
+        "section": "三、论文基本结构及撰写规范",
+        "quote": "扉页：指导小组成员名单"
+      },
+      "note": "检测栏目线索，不把参考目录的名称和顺序设为强制模板，不验证签名或内容充分性。",
+      "params": {
+        "aliases": [
+          "指导小组成员名单",
+          "指导小组名单"
+        ],
+        "kinds": [
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "STRUCT-ORIGINAL",
+      "title": "预答辩论文的原创性或独创性声明",
+      "mode": "heading",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 3,
+        "section": "三、论文基本结构及撰写规范",
+        "quote": "学位论文原创性声明和授权使用声明"
+      },
+      "note": "检测栏目线索，不把参考目录的名称和顺序设为强制模板，不验证签名或内容充分性。",
+      "params": {
+        "aliases": [
+          "学位论文原创性声明",
+          "学位论文独创性声明",
+          "原创性声明",
+          "独创性声明"
+        ],
+        "kinds": [
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "STRUCT-AUTHORIZATION",
+      "title": "预答辩论文的授权使用声明",
+      "mode": "heading",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 3,
+        "section": "三、论文基本结构及撰写规范",
+        "quote": "学位论文原创性声明和授权使用声明"
+      },
+      "note": "检测栏目线索，不把参考目录的名称和顺序设为强制模板，不验证签名或内容充分性。",
+      "params": {
+        "aliases": [
+          "学位论文使用授权声明",
+          "学位论文授权使用声明",
+          "授权使用声明",
+          "授权声明"
+        ],
+        "kinds": [
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "STRUCT-REFERENCES",
+      "title": "预答辩论文的参考文献",
+      "mode": "heading",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 6,
+        "section": "三、论文基本结构及撰写规范",
+        "quote": "各类参考文献编排格式须符合国家标准 GB/T 7714-2015"
+      },
+      "note": "检测栏目线索，不把参考目录的名称和顺序设为强制模板，不验证签名或内容充分性。",
+      "params": {
+        "aliases": [
+          "参考文献"
+        ],
+        "kinds": [
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "STRUCT-INTRO",
+      "title": "预答辩论文的绪论或研究背景",
+      "mode": "heading",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 3,
+        "section": "三、论文基本结构及撰写规范",
+        "quote": "第一部分：绪论"
+      },
+      "note": "检测栏目线索，不把参考目录的名称和顺序设为强制模板，不验证签名或内容充分性。",
+      "params": {
+        "aliases": [
+          "绪论",
+          "引言",
+          "研究背景",
+          "研究背景与意义"
+        ],
+        "kinds": [
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "STRUCT-REVIEW",
+      "title": "预答辩论文的文献综述",
+      "mode": "heading",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 4,
+        "section": "三、论文基本结构及撰写规范",
+        "quote": "第二部分：文献综述与理论基础"
+      },
+      "note": "检测栏目线索，不把参考目录的名称和顺序设为强制模板，不验证签名或内容充分性。",
+      "params": {
+        "aliases": [
+          "文献综述",
+          "概念界定与文献综述",
+          "文献综述与理论基础",
+          "国内外研究现状"
+        ],
+        "kinds": [
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "STRUCT-DESIGN",
+      "title": "预答辩论文的研究设计",
+      "mode": "heading",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 4,
+        "section": "三、论文基本结构及撰写规范",
+        "quote": "第三部分：研究设计"
+      },
+      "note": "检测栏目线索，不把参考目录的名称和顺序设为强制模板，不验证签名或内容充分性。",
+      "params": {
+        "aliases": [
+          "研究设计",
+          "研究方案"
+        ],
+        "kinds": [
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "STRUCT-ANALYSIS",
+      "title": "预答辩论文的研究分析",
+      "mode": "heading",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 5,
+        "section": "三、论文基本结构及撰写规范",
+        "quote": "第四部分：研究分析"
+      },
+      "note": "检测栏目线索，不把参考目录的名称和顺序设为强制模板，不验证签名或内容充分性。",
+      "params": {
+        "aliases": [
+          "研究分析",
+          "研究结果",
+          "研究发现",
+          "数据分析"
+        ],
+        "kinds": [
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "STRUCT-CONCLUSION",
+      "title": "预答辩论文的结论与建议",
+      "mode": "heading",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 5,
+        "section": "三、论文基本结构及撰写规范",
+        "quote": "第五部分：结论与建议"
+      },
+      "note": "检测栏目线索，不把参考目录的名称和顺序设为强制模板，不验证签名或内容充分性。",
+      "params": {
+        "aliases": [
+          "结论",
+          "研究结论",
+          "结论与建议",
+          "结论及展望",
+          "结论与展望"
+        ],
+        "kinds": [
+          "thesis"
+        ]
+      }
+    },
+    {
+      "id": "REQ-AI",
+      "title": "论文附 AI 使用声明",
+      "mode": "ai_declaration",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 1,
+        "section": "一、学位论文基本要求",
+        "quote": "论文须附有 AI 使用声明，阐明论文撰写过程中 AI 的使用范围。"
+      },
+      "note": "可读文字中未检出时提醒核对；图片、文本框或未展开附件可能影响检测。声明内容真实性需人工确认。",
+      "params": {}
+    },
+    {
+      "id": "ABS-LENGTH",
+      "title": "中文摘要通常为 300–500 字",
+      "mode": "abstract_length",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "recommendation",
+      "source": {
+        "pdf_page": 3,
+        "section": "三（一）前置部分",
+        "quote": "字数通常为 300-500 字。"
+      },
+      "note": "",
+      "params": {
+        "minimum": 300,
+        "maximum": 500
+      }
+    },
+    {
+      "id": "KEYWORDS",
+      "title": "中文关键词为 3–5 个",
+      "mode": "keywords",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 3,
+        "section": "三（一）前置部分",
+        "quote": "关键词：选取 3-5 个能反映论文核心内容的词语。"
+      },
+      "note": "",
+      "params": {
+        "minimum": 3,
+        "maximum": 5
+      }
+    },
+    {
+      "id": "CLASSIFICATION",
+      "title": "中英文摘要标注中图分类号",
+      "mode": "classification",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 3,
+        "section": "三（一）前置部分",
+        "quote": "中文摘要（关键词，中图分类号）；英文摘要（关键词，中图分类号）"
+      },
+      "note": "仅核对分类号线索，不把模板里的 G64 当作所有论文的指定分类号。",
+      "params": {}
+    },
+    {
+      "id": "TITLE-LENGTH",
+      "title": "题目一般不超过 30 个汉字",
+      "mode": "title_length",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "recommendation",
+      "source": {
+        "pdf_page": 3,
+        "section": "三（一）前置部分",
+        "quote": "论文题目：应简明扼要，一般不超过 30 个汉字。"
+      },
+      "note": "",
+      "params": {
+        "maximum": 30
+      }
+    },
+    {
+      "id": "COUNT-BODY",
+      "title": "正文不少于 5 万字",
+      "mode": "body_count",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 1,
+        "section": "一、学位论文基本要求",
+        "quote": "正文字数不少于 5 万字。"
+      },
+      "note": "默认仅给试验计数和范围，不作达标判断；必须显式确认计数口径，且正文范围可识别、覆盖完整后才执行阈值判定。",
+      "params": {
+        "minimum": 50000
+      }
+    },
+    {
+      "id": "COUNT-REVIEW",
+      "title": "文献综述不超过正文的 15%",
+      "mode": "review_ratio",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 1,
+        "section": "一、学位论文基本要求",
+        "quote": "文献综述部分不得超过正文字数的 15%。"
+      },
+      "note": "不得把“概念界定与文献综述”整章自动当作综述；范围或口径不明确时转人工确认。",
+      "params": {
+        "maximum": 0.15
+      }
+    },
+    {
+      "id": "CAPTION-POSITION",
+      "title": "图题在下方、表题在上方",
+      "mode": "caption_position",
+      "stages": [
+        "proposal",
+        "midterm",
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 17,
+        "section": "模板第四章的格式说明",
+        "quote": "图标题在图下方，表标题在表上方。"
+      },
+      "note": "只对可关联的独立行内图片和原生表格检查；浮动、多图、多段表题、合并图表转人工确认。",
+      "params": {}
+    },
+    {
+      "id": "CAPTION-NUMBER",
+      "title": "图表序号分章设置",
+      "mode": "caption_number",
+      "stages": [
+        "proposal",
+        "midterm",
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 17,
+        "section": "模板第四章的格式说明",
+        "quote": "图表序号分章设置，如图 3-4 表示第三章第 4 幅图。"
+      },
+      "note": "采用模板说明，不照抄示例图表的具体编号。只核对结构关联明确的题注。",
+      "params": {}
+    },
+    {
+      "id": "MANUAL-REFERENCES",
+      "title": "参考文献及注释格式",
+      "mode": "manual",
+      "stages": [
+        "proposal",
+        "midterm",
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 6,
+        "section": "三（三）结尾部分",
+        "quote": "同时参考《复旦大学教育学、教育硕士学位论文规范（2025 年 3 月修订版）》"
+      },
+      "note": "尚未获得被引用的完整规则，不冒充已完成 GB/T 著录合规审核。",
+      "params": {}
+    },
+    {
+      "id": "MANUAL-COVER",
+      "title": "封面、声明标准模板",
+      "mode": "manual",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 3,
+        "section": "三（一）前置部分",
+        "quote": "请严格按照《复旦大学博士、硕士学位论文规范（2024 年 10 月修订版）》提供的标准样本制作"
+      },
+      "note": "尚未获得该标准文件，首版不判断封面模板或签名真实有效。",
+      "params": {}
+    },
+    {
+      "id": "MANUAL-MARGINS",
+      "title": "页面设置的 Word 默认值",
+      "mode": "manual",
+      "stages": [
+        "proposal",
+        "midterm",
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 6,
+        "section": "三（四）打印与排版",
+        "quote": "页面设置按 word 默认值"
+      },
+      "note": "默认值可能随模板变化；未写明的页边距不自行设成硬性错误。",
+      "params": {}
+    },
+    {
+      "id": "MANUAL-PRINT",
+      "title": "双面打印、封面颜色和装订",
+      "mode": "manual",
+      "stages": [
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 6,
+        "section": "三（四）打印与排版",
+        "quote": "双面打印；必须采用线装或热胶装订"
+      },
+      "note": "数字文件不能证明实际打印、装订或实物封面颜色。",
+      "params": {}
+    },
+    {
+      "id": "MANUAL-ETHICS",
+      "title": "问卷调查的审核与许可",
+      "mode": "manual",
+      "stages": [
+        "proposal",
+        "midterm",
+        "predefense"
+      ],
+      "strength": "required",
+      "source": {
+        "pdf_page": 1,
+        "section": "一、学位论文基本要求",
+        "quote": "导师须审核问卷内容。问卷发放前，必须经过基础教育学校和代教老师同意。"
+      },
+      "note": "条件性条款：涉及问卷时适用；文中出现相关词语不能证明已取得许可。",
+      "params": {}
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "id": "college-predefense-review", "version": "0.1.0", "name": "预答辩论文核对", "stage": "predefense",
+  "instructions": ["严格使用预答辩论文稿的规则。", "字数与综述统计口径尚未由学院确认，不从估算认定达标。", "无法可靠读取的字体、图像文字、公式和复杂表格必须保留人工确认。", "只解释工具已经给出的证据；禁止添加未提供的要求或测量结果。"],
+  "tools": ["native-reader", "college-rule-engine", "evidence-explainer"],
+  "outputContract": "JSON: explanations[{issue_id,explanation,steps}]；仅允许输入中的issue_id；不修改原文、不改变规则判定。",
+  "references": ["fudan-education-master-2026-05-26"]
+}

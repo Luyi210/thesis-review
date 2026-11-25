@@ -1,0 +1,7 @@
+{
+  "id": "college-proposal-review", "version": "0.1.0", "name": "开题要求核对", "stage": "proposal",
+  "instructions": ["严格使用开题阶段及当前材料类型的规则。", "栏目存在仅代表发现线索，不判断研究方法或内容充分性。", "阶段报告格式偏差作为建议，不直接宣称论文正式不合格。", "只解释工具已经给出的证据；禁止添加未提供的要求或测量结果。"],
+  "tools": ["native-reader", "college-rule-engine", "evidence-explainer"],
+  "outputContract": "JSON: explanations[{issue_id,explanation,steps}]；仅允许输入中的issue_id；不修改原文、不改变规则判定。",
+  "references": ["fudan-education-master-2026-05-26"]
+}

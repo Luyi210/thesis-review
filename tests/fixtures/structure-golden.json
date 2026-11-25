@@ -1,0 +1,7 @@
+{
+  "scope": "synthetic_only_not_real_thesis_accuracy",
+  "cases": [
+    { "file": "structure-correct.docx", "position_fail_paragraphs": [], "number_fail_paragraphs": [], "linked_captions": 2, "unresolved_graphic_objects": 0, "orphan_captions": 0, "objects": { "image": 1, "table": 1, "formula": 1 } },
+    { "file": "structure-mixed.docx", "position_fail_paragraphs": [5, 11], "number_fail_paragraphs": [5, 11, 13], "linked_captions": 3, "unresolved_graphic_objects": 2, "orphan_captions": 1, "objects": { "image": 3, "table": 2, "formula": 1 } }
+  ]
+}
