@@ -1,10 +1,11 @@
-import type { Check, Location, Report, Status } from '../domain/types';
+import type { Check, FormatSpan, Location, Report, Status } from '../domain/types';
 
 export interface MarkSelection { id: string; item: number }
 export interface SourceMark extends MarkSelection {
   status: 'fail' | 'warning' | 'manual';
   title: string;
   location: Location;
+  formatSpan?: FormatSpan;
 }
 const priority = { fail: 0, warning: 1, manual: 2 };
 const actionable = (status: Status): status is SourceMark['status'] =>
@@ -15,7 +16,7 @@ export function sourceMarks(checks: Check[]): SourceMark[] {
   for (const check of checks) {
     check.items.forEach((item, index) => {
       if (actionable(item.status)) marks.push({
-        id: check.rule.id, item: index, status: item.status, title: check.rule.title, location: item.location,
+        id: check.rule.id, item: index, status: item.status, title: check.rule.title, location: item.location, formatSpan: item.formatSpan,
       });
     });
   }

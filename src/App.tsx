@@ -5,6 +5,9 @@ import { Configuration } from './components/Configuration';
 import { marginInitialSelection } from './domain/marginNotes';
 import { FullReport } from './components/FullReport';
 import { MarginNotes } from './components/MarginNotes';
+import { explanationKey } from './model/contracts';
+import { FeedbackPanel, TeacherFeedbackProvider } from './components/TeacherFeedback';
+import type { ExplanationControls } from './components/OccurrenceExplanation';
 import { useMarginLeader } from './components/useMarginLeader';
 import { DocumentViewer } from './components/DocumentViewer';
 import { CoveragePanel } from './components/CoveragePanel';
@@ -18,9 +21,10 @@ import { runWorkflow, type WorkflowResult } from './domain/workflow';
 import { BrowserModel, probeWebGPU, type Capability, type ModelEvidence, type ModelState } from './model/runtime';
 import { downloadJson, publicAsset } from './utils';
 
-const UTILITY_TITLES = { records: '完整检查记录', coverage: '图表与公式', versions: '版本对比' } as const;
+const UTILITY_TITLES = { records: '完整检查记录', coverage: '图表与公式', versions: '版本对比', feedback: '教师反馈' } as const;
 type Panel = 'notes' | keyof typeof UTILITY_TITLES;
 const SAMPLES = [
+  { url: 'samples/mixed-run-format.docx', name: '合成样稿_同段不同字号.docx', label: 'Word 同段不同字号' },
   { url: 'samples/structure-mixed.docx', name: '合成样稿_图表公式结构核对.docx', label: 'Word 图表公式样稿' },
   { url: 'samples/known-errors.docx', name: '合成样稿_含已知格式错误.docx', label: 'Word 格式样稿' },
   { url: 'samples/corrected-format.docx', name: '合成样稿_基础格式修正对照.docx', label: 'Word 修正对照稿' },
@@ -43,6 +47,9 @@ export default function App() {
   const activateUpdate = useRef<((reload?: boolean) => Promise<void>) | null>(null);
   const [modelState, setModelState] = useState<ModelState>({ phase: 'idle', progress: 0, text: '尚未加载' });
   const [explanations, setExplanations] = useState<Record<string, ModelEvidence>>({});
+  const [explanationErrors, setExplanationErrors] = useState<Record<string, string>>({});
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const activeRequest = useRef<string | null>(null);
   const runtime = useRef(new BrowserModel()); const fileInput = useRef<HTMLInputElement>(null); const latest = useRef(data); latest.current = data;
   const [toolsOpen, setToolsOpen] = useState(false);
   const pendingChoice = useRef(0);
@@ -52,7 +59,7 @@ export default function App() {
   const layout = useRef<HTMLElement>(null);
   const selectionKey = [data?.report.id, panel, selected?.id, selected?.item].join('/');
   const leader = useMarginLeader(layout, selectionKey);
-  const generating = modelState.phase === 'generating'; const locked = busy || generating;
+  const generating = modelState.phase === 'generating'; const locked = busy || generating || pendingKey !== null;
 
   useEffect(() => runtime.current.subscribe(setModelState), []);
   useEffect(() => {
@@ -99,10 +106,14 @@ export default function App() {
     if (value === 'notes') toolsButton.current?.focus();
     else requestAnimationFrame(() => drawerClose.current?.focus());
   }
+  function clearExplanations() {
+    setExplanations({});
+    setExplanationErrors({});
+  }
   function clearReview() {
     pendingChoice.current++;
     setData(null);
-    setExplanations({});
+    clearExplanations();
     setSelected(null);
     setFocusLocation(null);
     setPanel('notes');
@@ -147,14 +158,32 @@ export default function App() {
     try { await runtime.current.load(settings); }
     catch { setNotice('本地模型未能加载，已有规则结果仍可查看。请在引擎配置中查看原因。'); }
   }
-  async function explain(check: AuditCheck) {
-    if (!data || !skill) return;
-    const captured = data.report.id; setError('');
+  async function explain(check: AuditCheck, itemIndex: number) {
+    if (!data || activeRequest.current !== null) return;
+    const reportId = data.report.id;
+    const target = explanationKey(reportId, check.rule.id, itemIndex);
+    activeRequest.current = target;
+    setPendingKey(target);
+    setExplanationErrors(previous => ({ ...previous, [target]: '' }));
     try {
-      const result = await runtime.current.explain(data.report, check, data.skill, settings);
-      if (latest.current?.report.id === captured) setExplanations(v => ({ ...v, [check.rule.id]: result }));
-    } catch (e) { setNotice((e as Error).message); }
+      const result = await runtime.current.explain(data.report, check, data.skill, settings, itemIndex);
+      if (latest.current?.report.id === reportId && result.targetKey === target) {
+        setExplanations(previous => ({ ...previous, [target]: result }));
+      }
+    } catch (error) {
+      if (latest.current?.report.id === reportId) {
+        const message = error instanceof Error ? error.message : String(error);
+        setExplanationErrors(previous => ({ ...previous, [target]: message }));
+      }
+    } finally {
+      activeRequest.current = null;
+      setPendingKey(null);
+    }
   }
+  const explanationControls: ExplanationControls = {
+    phase: modelState.phase, pendingKey, errors: explanationErrors, results: explanations,
+    onExplain: explain, onConfigure: () => setConfigOpen(true), onCancel: () => runtime.current.cancel(),
+  };
   const currentVersion = versions.find(v => v.result.report.id === data?.report.id) || null;
   const baseline = versions.find(v => v.result.report.id === baselineId) || null;
   function viewVersion(snapshot: VersionSnapshot) {
@@ -162,14 +191,14 @@ export default function App() {
     pendingChoice.current++;
     const result = snapshot.result;
     setData(result); setPack(result.pack); setSkill(result.skill); setStage(result.report.stage); setKind(result.report.kind);
-    setPanel('notes'); setFile(new File([result.buffer], result.report.document.name)); setExplanations({}); setSelected(marginInitialSelection(result.report)); setFocusLocation(null); setError('');
+    setPanel('notes'); setFile(new File([result.buffer], result.report.document.name)); clearExplanations(); setSelected(marginInitialSelection(result.report)); setFocusLocation(null); setError('');
     setNotice('正在查看该版保存的检查结果；重新检查会使用当前引擎配置。');
   }
 
   function exportReport() { if (data) downloadJson({ ...data.report, skills: data.skill, modelExplanations: explanations, ruleConfiguration: { disabledRules: currentVersion?.settings.disabledRules || settings.disabledRules }, comparison: baseline && currentVersion && baseline !== currentVersion ? { before: versionProvenance(baseline), after: versionProvenance(currentVersion), ...compareVersions(baseline, currentVersion) } : null, note: '本地试验，不等于教师复核通过；AI解释不改变规则判定。' }, `审核记录_${file?.name || '材料'}.json`); }
 
 
-  return <div className="app-shell reader-app margin-app">
+  return <TeacherFeedbackProvider><div className="app-shell reader-app margin-app">
     <header className="review-masthead">
       <div className="masthead-brand"><h1>论文审阅</h1></div>
       {file && <span className="manuscript-name" title={file.name}>{file.name}</span>}
@@ -193,7 +222,7 @@ export default function App() {
         }}>
           <button className="tools-trigger" ref={toolsButton} aria-label="更多工具" title="更多工具" aria-expanded={toolsOpen} aria-controls="review-tools" onClick={() => setToolsOpen(v => !v)}><MoreHorizontal size={20}/></button>
           {toolsOpen && <nav id="review-tools" className="tools-popover" aria-label="更多工具">
-            {Object.entries(UTILITY_TITLES).map(([id, name]) => <button key={id} disabled={id === 'versions' ? !versions.length : !data} onClick={() => showPanel(id as Panel)}>{name}</button>)}
+            {Object.entries(UTILITY_TITLES).map(([id, name]) => <button key={id} disabled={id === 'versions' || id === 'feedback' ? !versions.length : !data} onClick={() => showPanel(id as Panel)}>{name}</button>)}
             <button disabled={!data} onClick={() => { exportReport(); setToolsOpen(false); toolsButton.current?.focus(); }}>导出审阅记录</button>
             <hr/>
             <label>示例稿<select aria-label="选择示例稿" disabled={locked} value="" onChange={e => { if (e.target.value) void sample(Number(e.target.value)); }}>
@@ -222,18 +251,19 @@ export default function App() {
                 {busy ? <LoaderCircle className="spin" size={16}/> : <Upload size={16}/>}
                 {busy ? '检查中' : file ? '重新检查' : '选择文件'}
               </button>
-              {!busy && <button className="sample-link" onClick={() => void sample(1)}>打开示例稿</button>}
+              {!busy && <button className="sample-link" onClick={() => void sample(0)}>打开示例稿</button>}
             </div></div></div>}
         </section>
         <aside className="findings-panel margin-panel" aria-label={panel === 'notes' ? '页边批注' : UTILITY_TITLES[panel]}>
-          {panel === 'notes' ? <MarginNotes report={data?.report ?? null} selected={selected} onSelect={select}/> :
+          {panel === 'notes' ? <MarginNotes report={data?.report ?? null} selected={selected} onSelect={select} controls={explanationControls}/> :
             <section className="utility-drawer" onKeyDown={e => { if (e.key === 'Escape') showPanel('notes'); }}>
               <header className="utility-heading"><h2>{UTILITY_TITLES[panel]}</h2>
                 <button ref={drawerClose} aria-label="返回页边批注" title="返回页边批注" onClick={() => showPanel('notes')}><X size={18}/></button>
               </header><div className="side-scroll">
                 {panel === 'versions' && <VersionsPanel versions={versions} current={currentVersion} baseline={baseline} onBaseline={setBaselineId} onView={viewVersion} locked={locked} onSelect={select}/>}
                 {panel === 'coverage' && data && <CoveragePanel report={data.report} onLocate={setFocusLocation}/>}
-                {panel === 'records' && data && <FullReport report={data.report} explanations={explanations} canExplain={modelState.phase === 'ready' && !locked} onExplain={explain} onSelect={select}/>}
+                {panel === 'feedback' && <FeedbackPanel key={data?.report.id || 'history'} report={data?.report ?? null} onSelect={select}/>}
+                {panel === 'records' && data && <FullReport report={data.report} onSelect={select}/>}
               </div>
             </section>}
         </aside>
@@ -241,5 +271,5 @@ export default function App() {
       </section>
     </main>
     {configOpen && <Configuration settings={settings} onApply={applySettings} onClose={() => setConfigOpen(false)} pack={pack} skill={skill} stage={stage} capability={capability} modelState={modelState} offlineReady={offlineReady} onLoadModel={loadModel} onCancelModel={() => runtime.current.cancel()}/>}
-  </div>;
+  </div></TeacherFeedbackProvider>;
 }

@@ -100,7 +100,7 @@ describe('model output is evidence explanation only', () => {
     expect(input[1].content).toContain('FMT-FONT'); expect(input[1].content).not.toContain('FMT-SIZE');
   });
   it('explains failing evidence instead of the first passing object in a mixed rule', () => {
-    const input = buildMessages(report, { ...check, items: [{ location: { paragraph: 1 }, observed: '此图正确', status: 'pass' }, { location: { paragraph: 5 }, observed: '图题在图前', status: 'fail' }] }, skill);
+    const input = buildMessages(report, { ...check, items: [{ location: { paragraph: 1 }, observed: '此图正确', status: 'pass' }, { location: { paragraph: 5 }, observed: '图题在图前', status: 'fail' }] }, skill, 1);
     expect(input[1].content).toContain('图题在图前'); expect(input[1].content).not.toContain('此图正确');
   });
   it('rejects unknown models, invalid budgets and nonfinite parameters', () => {

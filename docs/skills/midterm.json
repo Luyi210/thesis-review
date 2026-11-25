@@ -1,7 +1,7 @@
 {
-  "id": "college-midterm-review", "version": "0.1.0", "name": "中期材料核对", "stage": "midterm",
+  "id": "college-midterm-review", "version": "0.2.0", "name": "中期材料核对", "stage": "midterm",
   "instructions": ["严格使用中期阶段及当前材料类型的规则。", "研究完成80%不能用字数比例推断，保留教师核实。", "发现进度和初稿栏目不代表进度真实或内容充分。", "只解释工具已经给出的证据；禁止添加未提供的要求或测量结果。"],
   "tools": ["native-reader", "college-rule-engine", "evidence-explainer"],
-  "outputContract": "JSON: explanations[{issue_id,explanation,steps}]；仅允许输入中的issue_id；不修改原文、不改变规则判定。",
+  "outputContract": "JSON: explanations[{issue_id,evidence_id,evidence_status,explanation,steps}]。保留当前证据编号、位置和状态，说明核对或修改步骤。",
   "references": ["fudan-education-master-2026-05-26"]
 }

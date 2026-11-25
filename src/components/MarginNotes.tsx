@@ -1,6 +1,9 @@
 import { useMemo } from 'react';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { buildMarginPositions, inspectMarginSelection, marginAdvice, marginValues, type MarginFinding, type MarginSelection } from '../domain/marginNotes';
+import { explanationKey } from '../model/contracts';
+import { OccurrenceExplanation, type ExplanationControls } from './OccurrenceExplanation';
+import { FindingFeedback } from './TeacherFeedback';
 import { LABELS, type Report } from '../domain/types';
 import { prettyPosition, publicAsset } from '../utils';
 
@@ -8,6 +11,7 @@ interface Props {
   report: Report | null;
   selected: MarginSelection | null;
   onSelect: (id: string, item: number) => void;
+  controls?: ExplanationControls;
 }
 
 function noteTitle({ check, item, status }: MarginFinding) {
@@ -31,8 +35,13 @@ function noteTitle({ check, item, status }: MarginFinding) {
   }
 }
 
-function Finding({ finding, report }: { finding: MarginFinding; report: Report }) {
+function Finding({ finding, report, controls, onSelect }: {
+  finding: MarginFinding; report: Report; controls?: ExplanationControls; onSelect: Props['onSelect'];
+}) {
   const { check, item, status } = finding;
+  const target = explanationKey(report.id, check.rule.id, finding.itemIndex);
+  const result = controls?.results[target];
+  const expanded = result?.explanations[0];
   const values = marginValues(finding);
   const advice = marginAdvice(finding, report);
   const page = check.rule.source.pdf_page;
@@ -41,17 +50,27 @@ function Finding({ finding, report }: { finding: MarginFinding; report: Report }
     <header className="note-title"><span className={`note-status ${status}`}>{statusLabel}</span><h3>{noteTitle(finding)}</h3></header>
     {values && <p className="note-evidence"><span><span className="sr-only">当前记录：</span>{values.observed}</span>
       {values.expected && <><ArrowRight size={15} aria-hidden="true"/><strong><span className="sr-only">要求：</span>{values.expected}</strong></>}</p>}
+    {item?.formatSpan && <button type="button" className="format-quote" title="定位这段格式异常或待核对的文字" onClick={() => onSelect(check.rule.id, finding.itemIndex)}>
+      <span>涉及文字</span><q>{item.formatSpan.text}{item.formatSpan.truncated ? '…' : ''}</q>
+    </button>}
     {item?.reason && <p className="note-reason">{item.reason}</p>}
     {!item && <p className="note-reason">{check.summary}</p>}
     {advice && <p className="note-advice">{advice}</p>}
     <a className="note-source" href={publicAsset(`rules/guide.pdf#page=${page}`)} target="_blank" rel="noreferrer"
       title={`${check.rule.source.section}　${check.rule.source.quote}`}>《撰写指南》第 {page} 页</a>
+    {check.executed && status !== 'not_applicable' && <div className="finding-follow-up">
+      {controls && <OccurrenceExplanation controls={controls} target={target} check={check} itemIndex={finding.itemIndex}/>}
+      <FindingFeedback report={report} finding={finding} modelAdvice={result && expanded ? {
+        text: expanded.explanation, steps: expanded.steps, modelId: result.modelId, skillVersion: result.skillVersion,
+      } : undefined}/>
+    </div>}
   </section>;
 }
 
-export function MarginNotes({ report, selected, onSelect }: Props) {
+export function MarginNotes({ report, selected, onSelect, controls }: Props) {
   const positions = useMemo(() => report ? buildMarginPositions(report) : [], [report]);
   const current = useMemo(() => report ? inspectMarginSelection(report, positions, selected) : undefined, [positions, report, selected]);
+  const activeFinding = current?.findings.find(f => f.check.rule.id === selected?.id && f.itemIndex === selected.item) ?? current?.findings[0];
   const index = useMemo(() => current ? positions.indexOf(current) : -1, [positions, current]);
   function navigate(to: number) {
     const finding = positions[to]?.findings[0];
@@ -71,7 +90,13 @@ export function MarginNotes({ report, selected, onSelect }: Props) {
     <div className="margin-body">
       {current && report ? <div className="margin-track"><div className="note-content" role="region" aria-label="当前批注" aria-live="polite">
         <p className="note-location">{current.location ? prettyPosition(current.location) : '整份材料'}{current.findings.length > 1 && ` · ${current.findings.length} 项`}</p>
-        {current.findings.map(f => <Finding key={`${f.check.rule.id}:${f.itemIndex}`} finding={f} report={report}/>)}
+        {activeFinding && <Finding key={explanationKey(report.id, activeFinding.check.rule.id, activeFinding.itemIndex)} finding={activeFinding} report={report} controls={controls} onSelect={onSelect}/>}
+        {current.findings.length > 1 && <div className="related-findings" aria-label="同一位置的其他批注">
+          <p>同一位置的其他批注</p>
+          {current.findings.filter(f => f !== activeFinding).map(f => <button type="button" key={explanationKey(report.id, f.check.rule.id, f.itemIndex)} onClick={() => onSelect(f.check.rule.id, f.itemIndex)}>
+            {noteTitle(f)}{f.item?.formatSpan && <q>{f.item.formatSpan.text.slice(0, 32)}{(f.item.formatSpan.text.length > 32 || f.item.formatSpan.truncated) && '…'}</q>}
+          </button>)}
+        </div>}
       </div></div> : <div className="margin-placeholder">
         <p>{!report ? '上传后，点选原文标记查看批注。' : !positions.length ? '本次检查没有可列出的批注。' : firstAlert < 0 ? '当前仅有待人工核对的项目。' : '点选原文标记，查看这一处的问题和修改建议。'}</p>
         {report && !positions.length && report.checks.some(c => !c.executed && c.status === 'manual') && <p>待人工核对项可在「更多工具 → 完整检查记录」中查看。</p>}

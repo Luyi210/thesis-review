@@ -36,7 +36,9 @@ describe('margin notes for a real DOCX format check', () => {
     const output = markup(report, { id: 'FMT-SIZE', item: 0 });
     expect(output).toContain('源段落 22');
     expect(output).toContain('小四（12 磅）');
-    expect(output).toContain('在字体的高级设置中将字符间距改为标准');
+    expect(output).toContain('同一位置的其他批注');
+    expect(output).toContain('字符间距不符');
+    expect(output).not.toContain('在字体的高级设置中将字符间距改为标准');
     expect(output).toContain('/rules/guide.pdf#page=6');
     expect(output).not.toContain('关键词数量不符');
     expect(output).not.toContain('twips');
@@ -95,6 +97,12 @@ describe('location evidence and status boundaries', () => {
     const changed = { ...report, checks: [check('REQ-AI', 'fail')] };
     expect(marginInitialSelection(changed)).toEqual({ id: 'REQ-AI', item: -1 });
     expect(markup(changed, { id: 'REQ-AI', item: 0 })).toContain('整份材料');
+  });
+  it('does not prescribe figure placement when looking at the overall caption result', () => {
+    const captions = check('CAPTION-POSITION', 'fail', [item({ paragraph: 5 }, 'fail')]);
+    const overall = { check: captions, itemIndex: -1, status: captions.status };
+    expect(marginAdvice(overall, report)).toContain('选择一个具体位置');
+    expect(marginAdvice(overall, report)).not.toContain('图片下方');
   });
   it('supports explicitly opened inapplicable records without listing them as annotations', () => {
     const changed = { ...report, checks: [check('FMT-SIZE', 'not_applicable')] };

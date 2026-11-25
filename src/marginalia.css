@@ -498,3 +498,28 @@
   .margin-app .margin-layout { grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
   .empty-sheet { min-height: max-content; }
 }
+
+.format-quote {
+  display: block;
+  max-width: 100%;
+  margin: 6px 0;
+  padding: 3px 0;
+  text-align: left;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.format-quote > span { margin-right: .5rem; font-size: 12px; color: var(--muted); }
+.format-quote q, .record-location q { font-family: var(--serif); }
+.format-quote:hover q { text-decoration: underline; text-underline-offset: .18em; }
+::highlight(review-text) { background-color: #f5d5a4; color: #2e241b; }
+.finding-follow-up { margin-top: 6px; }
+.occurrence-explanation { margin-top: 4px; font-size: 13px; color: var(--muted); }
+.occurrence-explanation summary { cursor: pointer; width: fit-content; padding: 3px 0; }
+.occurrence-explanation button { color: #744832; text-decoration: underline; text-underline-offset: 3px; padding: 4px 0; }
+.occurrence-explanation p, .occurrence-explanation ol { margin-top: 5px; line-height: 1.65; }
+.occurrence-explanation ol { padding-inline-start: 1.4em; }
+.related-findings { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 9px; }
+.related-findings p { color: var(--muted); font-size: 12px; }
+.related-findings button { display: block; margin-top: 4px; padding: 4px 0; color: #744832; text-align: left; font-size: 13px; }
+.related-findings q { margin-left: .5em; color: var(--muted); overflow-wrap: anywhere; }
+.related-findings button:hover { text-decoration: underline; }

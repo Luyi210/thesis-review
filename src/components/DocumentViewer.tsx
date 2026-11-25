@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, FileText, LoaderCircle, Minus, Plus } from 'lucide-react';
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import type { Location, Report } from '../domain/types';
+import { wordRunOffsets, spanOffsets, renderedRange, clickedTextOffset } from './wordRanges';
 import { openPdf } from '../readers/pdf';
 import { groupPdfMarks, indexWordLayout, pdfBoundsKey, preferredMark, sourceMarks, visibleAnchorTop, type MarkSelection, type SourceMark } from './documentMarks';
 
@@ -37,7 +38,9 @@ export function DocumentViewer({ buffer, report, selected, focusLocation, onSele
   onSelectRef.current = onSelect;
   onAnchorRef.current = onAnchorChange;
 
-  const selectedLocation = focusLocation ?? (selected && report.checks.find(c => c.rule.id === selected.id)?.items[selected.item]?.location);
+  const selectedItem = selected && report.checks.find(c => c.rule.id === selected.id)?.items[selected.item];
+  const selectedLocation = focusLocation ?? selectedItem?.location;
+  const byParagraph = useMemo(() => new Map(report.document.paragraphs.map(p => [p.index, p])), [report.document]);
   const marks = useMemo(() => sourceMarks(report.checks), [report.checks]);
   const pdfGroups = useMemo(() => isPdf ? groupPdfMarks(marks, page) : new Map<string, SourceMark[]>(), [isPdf, marks, page]);
   const selectedBox = selectedLocation?.page === page ? pdfBoundsKey(selectedLocation) : null;
@@ -159,7 +162,19 @@ export function DocumentViewer({ buffer, report, selected, focusLocation, onSele
       element.setAttribute('aria-label', '查看批注：' + title + (excerpt ? '。' + excerpt : ''));
       const choose = (event: Event) => {
         event.stopPropagation();
-        const mark = preferredMark(group, selectedRef.current);
+        let mark = preferredMark(group, selectedRef.current);
+        if (event instanceof MouseEvent && event.detail > 0 && group.some(m => m.formatSpan)) {
+          const paragraph = byParagraph.get(mark.location.paragraph ?? -1);
+          const offsets = paragraph && wordRunOffsets(paragraph, element.textContent || '');
+          const at = offsets ? clickedTextOffset(element, event) : null;
+          if (offsets && at !== null) {
+            const hits = group.filter(m => {
+              const range = m.formatSpan && spanOffsets(offsets, m.formatSpan);
+              return range && at >= range[0] && at < range[1];
+            });
+            if (hits.length) mark = preferredMark(hits, selectedRef.current);
+          }
+        }
         onSelectRef.current(mark.id, mark.item);
       };
       element.addEventListener('click', choose, { signal: controls.signal });
@@ -176,7 +191,7 @@ export function DocumentViewer({ buffer, report, selected, focusLocation, onSele
         for (const attr of ['tabindex', 'role', 'title', 'aria-label']) element.removeAttribute(attr);
       });
     };
-  }, [locate, marks]);
+  }, [locate, marks, byParagraph]);
 
   useLayoutEffect(() => {
     if (!wordActive) return;
@@ -184,6 +199,18 @@ export function DocumentViewer({ buffer, report, selected, focusLocation, onSele
     wordActive.setAttribute('aria-current', 'true');
     return () => { wordActive.classList.remove('audit-active'); wordActive.removeAttribute('aria-current'); };
   }, [wordActive]);
+
+  useLayoutEffect(() => {
+    const span = selectedItem?.formatSpan;
+    const paragraph = byParagraph.get(selectedItem?.location.paragraph ?? -1);
+    if (!wordActive || !span || !paragraph || focusLocation || !globalThis.CSS?.highlights || typeof Highlight === 'undefined') return;
+    const offsets = wordRunOffsets(paragraph, wordActive.textContent || '');
+    const bounds = offsets && spanOffsets(offsets, span);
+    const range = bounds && renderedRange(wordActive, bounds);
+    if (!range) return;
+    CSS.highlights.set('review-text', new Highlight(range));
+    return () => { CSS.highlights.delete('review-text'); };
+  }, [selectedItem, wordActive, byParagraph, focusLocation]);
 
   // Jump to an expressly selected, offscreen occurrence in the scrollport only.
   // A paragraph clicked in the manuscript is already visible and stays where it was.

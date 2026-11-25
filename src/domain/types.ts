@@ -36,7 +36,10 @@ export interface Rule {
   params: { aliases?: string[]; kinds?: MaterialKind[]; expected_pt?: number; expected_twips?: number; minimum?: number; maximum?: number; width_mm?: number; height_mm?: number };
 }
 export interface RulePack { id: string; version: string; title: string; review_status: string; source: { sha256: string; document_date: string }; rules: Rule[]; scope_notes: string[] }
-export interface CheckItem { location: Location; observed: string; expected?: string; status: Status; reason?: string }
+// Inclusive, one-based indices in the visible native runs of the source paragraph.
+// text is a bounded quotation; location.excerpt remains the paragraph anchor.
+export interface FormatSpan { firstRun: number; lastRun: number; text: string; truncated: boolean }
+export interface CheckItem { location: Location; observed: string; expected?: string; status: Status; reason?: string; formatSpan?: FormatSpan }
 export interface Check { rule: Rule; status: Status; summary: string; items: CheckItem[]; executed: boolean }
 export interface Report {
   id: string; engine: string; stage: Stage; kind: MaterialKind; createdAt: string;

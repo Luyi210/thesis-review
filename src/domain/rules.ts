@@ -1,7 +1,8 @@
 import { publicAsset } from '../utils';
 import type { AuditDocument, Check, CheckItem, MaterialKind, Paragraph, Report, RulePack, Settings, Stage, Status } from './types';
 import { locationOf } from './types';
-import { BACK, cleanTitle, digest, FRONT, ZH } from '../readers/shared';
+import { BACK, cleanTitle, digest, FRONT } from '../readers/shared';
+import { checkTextFormat } from './textFormat';
 import { checkFrontMatter } from './frontMatter';
 import { checkCaptions, reviewStructure } from './structure';
 
@@ -54,15 +55,11 @@ export function auditDocument(doc: AuditDocument, stage: Stage, kind: MaterialKi
             if (p.lineRule !== 'exact' || p.lineTwips === null) unknown.push({ location: locationOf(p), observed: `${p.lineRule || '未确定'} / ${p.lineTwips ?? '未确定'}`, status: 'manual', reason: '未确定固定行距，不能等同20磅。' });
             else if (Math.abs(p.lineTwips / 20 - (rule.params.expected_pt || 20)) > .05) bad.push({ location: locationOf(p), observed: `固定 ${p.lineTwips / 20} 磅`, expected: `${rule.params.expected_pt} 磅`, status: 'fail' });
           } else {
-            const mismatch = new Set<string>(); const uncertain = new Set<string>();
-            for (const r of p.runs.filter(r => ZH.test(r.text))) {
-              examined++;
-              const value = rule.mode === 'body_font' ? r.font : rule.mode === 'body_size' ? r.size : r.spacing;
-              const valid = rule.mode === 'body_font' ? Boolean(value && rule.params.aliases?.some(a => a.toLowerCase() === String(value).toLowerCase())) : typeof value === 'number' && Math.abs(value - (rule.mode === 'body_size' ? (rule.params.expected_pt || 12) : (rule.params.expected_twips || 0))) <= .05;
-              if (value === null) uncertain.add('未能可靠读取'); else if (!valid) mismatch.add(String(value));
+            const inspected = checkTextFormat(p, rule, doc.format);
+            examined += inspected.examined;
+            for (const finding of inspected.findings) {
+              (finding.status === 'manual' ? unknown : bad).push(finding);
             }
-            if (mismatch.size) bad.push({ location: locationOf(p), observed: [...mismatch].join('、'), expected: rule.mode === 'body_font' ? '宋体 / SimSun' : rule.mode === 'body_size' ? `${rule.params.expected_pt} 磅` : `${rule.params.expected_twips} twips`, status: 'fail' });
-            if (uncertain.size) unknown.push({ location: locationOf(p), observed: [...uncertain].join('、'), reason: '未知属性不能认定为格式不符。', status: 'manual' });
           }
         }
         emit(bad.length ? 'fail' : unknown.length || !examined ? 'manual' : 'pass', `核对${examined}个${rule.mode === 'body_line' ? '候选正文段落' : '候选正文中文片段'}：${bad.length}处偏差，${unknown.length}处未确定。`, [...bad, ...unknown]);
@@ -84,5 +81,5 @@ export function auditDocument(doc: AuditDocument, stage: Stage, kind: MaterialKi
     if (kind === 'report' && (status as Status) === 'fail' && (rule.mode.startsWith('body_') || rule.mode === 'page_size')) { status = 'warning'; summary += ' 阶段报告格式适用性待学院确认，本次仅提醒。'; items = items.map(i => i.status === 'fail' ? { ...i, status: 'warning' } : i); }
     return { rule, status, summary, items, executed };
   });
-  return { id: crypto.randomUUID(), engine: 'browser-audit-0.4.0', stage, kind, createdAt: new Date().toISOString(), document: doc, ruleVersion: pack.version, checks, elapsedMs: performance.now() - started, steps: [], structure };
+  return { id: crypto.randomUUID(), engine: 'browser-audit-0.7.0', stage, kind, createdAt: new Date().toISOString(), document: doc, ruleVersion: pack.version, checks, elapsedMs: performance.now() - started, steps: [], structure };
 }

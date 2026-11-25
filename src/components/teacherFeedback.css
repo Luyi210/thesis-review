@@ -1,0 +1,21 @@
+.finding-feedback, .missed-feedback { margin: 10px 0; color: var(--ink); font-size: 13px; }
+.finding-feedback > summary, .missed-feedback > summary, .feedback-quote > summary { width: fit-content; color: #735942; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.feedback-form { display: grid; gap: 9px; padding-block: 10px 4px; }
+.feedback-form label, .feedback-tools label { display: grid; gap: 4px; color: #564a40; font-size: 13px; }
+.feedback-form :is(select, textarea, input), .feedback-tools select { width: 100%; min-width: 0; padding: 5px 7px; background: #fffefa; border: 1px solid #cbbfb1; border-radius: 3px; color: #322f2b; font: inherit; }
+.feedback-form textarea { resize: vertical; min-height: 55px; }
+.feedback-form .feedback-save, .feedback-tools button, .feedback-actions button { justify-self: start; padding: 5px 9px; border: 1px solid #cbbfb1; border-radius: 3px; background: transparent; color: #593d2d; font-size: 13px; }
+.feedback-meta, .feedback-status { color: #76685e; font-size: 12px; line-height: 1.6; }
+.feedback-status:empty { display: none; }
+.feedback-quote p, .feedback-quote ol { margin: 6px 0; }
+.feedback-quote ol { padding-left: 1.5rem; }
+.feedback-panel { font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; }
+.feedback-tools, .feedback-actions { display: flex; align-items: end; gap: 7px; flex-wrap: wrap; margin-block: 12px; }
+.feedback-entry { border-top: 1px solid #ded7cd; }
+.feedback-entry > button { display: block; width: 100%; text-align: left; padding: 9px 0; color: #493b30; }
+.feedback-entry > button small { display: block; color: #74685e; font-size: 12px; }
+.feedback-existing { padding: 0 0 12px; }
+.feedback-existing blockquote { margin: 6px 0; border-left: 2px solid #c7b39b; padding-left: 10px; }
+.feedback-existing p { margin-block: 5px; }
+
+.feedback-match { display: block; width: 100%; padding: 5px 2px; border-bottom: 1px solid #ded7cd; text-align: left; line-height: 1.5; color: #593d2d; }

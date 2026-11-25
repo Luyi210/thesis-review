@@ -12,14 +12,37 @@ const child = (node: Element | null | undefined, name: string, ns = W): Element 
 const attr = (node: Element | null, name: string, fallback: string | null = null) => node?.hasAttributeNS(W, name) ? node.getAttributeNS(W, name) : fallback;
 const num = (s: string | null | undefined) => s !== null && s !== undefined && s !== '' && Number.isFinite(Number(s)) ? Number(s) : null;
 const hasAncestor = (node: Node, names: string[]) => { let p = node.parentNode; while (p) { if ((p as Element).namespaceURI === W && names.includes((p as Element).localName || '')) return true; p = p.parentNode; } return false; };
-interface RProps { eastAsia?: string; theme?: string; size?: number | null; spacing?: number | null; hidden?: boolean; language?: string; origin?: string }
+interface RProps { eastAsia?: string; theme?: string; size?: number | null; spacing?: number | null; hidden?: boolean; complexScript?: boolean; rtl?: boolean; origin?: string }
 interface PProps { outline?: number | null; lineRule?: string | null; line?: number | null; align?: string | null }
 
 class StyleResolver {
   nodes = new Map<string, Element>(); defaultStyle: string | null = null; defaults: Element | null;
-  constructor(styles: Document, private theme?: Document) {
-    for (const s of all(styles, 'style')) { this.nodes.set(attr(s, 'styleId') || '', s); if (attr(s, 'type') === 'paragraph' && attr(s, 'default') === '1') this.defaultStyle = attr(s, 'styleId'); }
+  private eastAsianThemeFonts = new Map<string, string>();
+  constructor(styles: Document, theme?: Document, settings?: Document) {
+    for (const s of all(styles, 'style')) {
+      this.nodes.set(attr(s, 'styleId') || '', s);
+      if (attr(s, 'type') === 'paragraph' && ['1', 'true', 'on'].includes(attr(s, 'default') || '')) this.defaultStyle = attr(s, 'styleId');
+    }
     this.defaults = all(styles, 'docDefaults')[0] || null;
+    if (!theme) return;
+    // ISO 29500 themeFontLang selects the theme script for the document.
+    // w:lang on individual runs is for proofing and does not select a theme font.
+    const lang = attr(settings ? child(settings.documentElement, 'themeFontLang') : null, 'eastAsia')?.toLowerCase();
+    let script: string | undefined;
+    if (lang) {
+      if (/^zh-(hans|cn|sg)(-|$)/.test(lang)) script = 'Hans';
+      else if (/^zh-(hant|tw|hk|mo)(-|$)/.test(lang)) script = 'Hant';
+      else if (/^ja(-|$)/.test(lang)) script = 'Jpan';
+      else if (/^ko(-|$)/.test(lang)) script = 'Hang';
+      else return; // Unknown language-to-script mapping stays manual.
+    }
+    for (const weight of ['major', 'minor']) {
+      const family = all(theme, weight + 'Font', A)[0];
+      if (!family) continue;
+      const matched = script ? all(family, 'font', A).find(f => f.getAttribute('script') === script) : null;
+      const face = matched?.getAttribute('typeface') || child(family, 'ea', A)?.getAttribute('typeface');
+      if (face) this.eastAsianThemeFonts.set(weight + 'EastAsia', face);
+    }
   }
   chain(id: string | null): Element[] {
     const seen = new Set<string>(); const result: Element[] = [];
@@ -35,7 +58,10 @@ class StyleResolver {
     if (spacing) state.spacing = num(attr(spacing, 'val'));
     const hidden = child(node, 'vanish');
     if (hidden) { const enabled = !['0', 'false', 'off'].includes((attr(hidden, 'val', '1') || '').toLowerCase()); if (origin.startsWith('style:')) { if (enabled) state.hidden = !state.hidden; } else state.hidden = enabled; }
-    const language = attr(child(node, 'lang'), 'eastAsia'); if (language) state.language = language;
+    for (const key of ['cs', 'rtl'] as const) {
+      const setting = child(node, key);
+      if (setting) state[key === 'cs' ? 'complexScript' : 'rtl'] = !['0', 'false', 'off'].includes(attr(setting, 'val', '1') || '');
+    }
   }
   paraProps(state: PProps, node: Element | null) {
     if (!node) return;
@@ -53,27 +79,24 @@ class StyleResolver {
     this.paraProps(paras, direct);
     return { runs, paras, name: attr(child(this.nodes.get(styleId || ''), 'name'), 'val', styleId || '') || '' };
   }
-  font(state: RProps): string | null {
-    if (!state.theme) return state.eastAsia || null;
-    const family = state.theme.startsWith('major') ? 'majorFont' : 'minorFont';
-    const font = this.theme ? all(this.theme, family, A)[0] : null;
-    const explicit = child(font, 'ea', A)?.getAttribute('typeface'); if (explicit) return explicit;
-    const lang = (state.language || '').toLowerCase();
-    const script = ['zh-cn', 'zh-sg', 'zh-hans'].includes(lang) ? 'Hans' : ['zh-tw', 'zh-hk', 'zh-mo'].includes(lang) ? 'Hant' : null;
-    return font && script ? all(font, 'font', A).find(f => f.getAttribute('script') === script)?.getAttribute('typeface') || null : null;
-  }
   run(el: Element, base: RProps): Run | null {
     const props = { ...base }; const direct = child(el, 'rPr');
     for (const s of this.chain(attr(child(direct, 'rStyle'), 'val'))) this.runProps(props, child(s, 'rPr'), `style:character:${attr(s, 'styleId')}`);
     this.runProps(props, direct, 'direct'); if (props.hidden) return null;
     const text = Array.from(el.getElementsByTagName('*')).filter(t => t.namespaceURI === W && ['t', 'tab', 'br', 'cr'].includes(t.localName) && !hasAncestor(t, ['del', 'moveFrom', 'txbxContent'])).map(t => t.localName === 't' ? t.textContent || '' : t.localName === 'tab' ? '\t' : '\n').join('');
-    return { text, font: this.font(props), size: props.size === null || props.size === undefined ? null : props.size / 2, spacing: props.spacing === undefined ? 0 : props.spacing, origin: props.origin || 'OOXML resolved' };
+    // A forced complex-script run uses separate cs/szCs properties. Ordinary
+    // eastAsia/sz values cannot establish the displayed font or size here.
+    const complex = props.complexScript || props.rtl;
+    const face = props.theme ? this.eastAsianThemeFonts.get(props.theme) : props.eastAsia;
+    return { text, font: complex ? null : face || null,
+      size: complex || props.size == null || props.size <= 0 ? null : props.size / 2,
+      spacing: props.spacing === undefined ? 0 : props.spacing, origin: props.origin || 'OOXML resolved' };
   }
 }
 
 export async function readDocx(buffer: ArrayBuffer, name: string, pack: RulePack): Promise<AuditDocument> {
   let expanded = 0;
-  const wanted = new Set(['word/document.xml', 'word/styles.xml', 'word/theme/theme1.xml']);
+  const wanted = new Set(['word/document.xml', 'word/styles.xml', 'word/theme/theme1.xml', 'word/settings.xml']);
   const files = unzipSync(new Uint8Array(buffer), { filter: f => {
     expanded += f.originalSize;
     if (expanded > 200 * 1024 * 1024) throw new Error('DOCX 展开大小超过200 MiB。');
@@ -89,7 +112,10 @@ export async function readDocx(buffer: ArrayBuffer, name: string, pack: RulePack
     if (failed) throw new Error(`DOCX XML格式无法可靠读取：${key}`);
     return result;
   };
-  const root = parse('word/document.xml'); const styles = new StyleResolver(parse('word/styles.xml', true), files['word/theme/theme1.xml'] ? parse('word/theme/theme1.xml') : undefined);
+  const root = parse('word/document.xml');
+  const styles = new StyleResolver(parse('word/styles.xml', true),
+    files['word/theme/theme1.xml'] ? parse('word/theme/theme1.xml') : undefined,
+    files['word/settings.xml'] ? parse('word/settings.xml') : undefined);
   const body = all(root, 'body')[0]; if (!body) throw new Error('没有找到DOCX正文。');
   const limitations: Limitation[] = []; const objects: ObjectEvidence[] = []; const names = headingNames(pack);
   const limitationsByCode = new Map<string, Limitation>();

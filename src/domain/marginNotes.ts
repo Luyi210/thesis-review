@@ -99,10 +99,15 @@ export function marginValues({ check, item }: MarginFinding) {
 export function marginAdvice(finding: MarginFinding, report: Report): string | undefined {
   const { check, status, item } = finding;
   if (!check.executed || status === 'pass' || status === 'not_applicable') return;
+  if (!item && check.items.length && (status === 'fail' || status === 'warning')) {
+    return '在完整检查记录中选择一个具体位置，查看该处的依据和修改建议。';
+  }
   const mode = check.rule.mode;
+  const selection = item?.formatSpan ? '批注所引片段中的中文文字' : '这段中的中文正文';
   if (status === 'manual') {
     if (mode === 'heading') return '在原稿中找到相应栏目，核对标题和栏目内容。';
     if (mode.startsWith('caption_')) return '对照原稿中的图表和题注，确认题注归属及所在位置。';
+    if (item?.formatSpan) return '在 Word 或 WPS 中选中批注所引片段中的中文文字，核对其字体设置。';
     if (mode.startsWith('body_')) return '在 Word 或 WPS 中选中对应正文，打开字体或段落设置核对。';
     if (mode === 'keywords' || mode === 'abstract_length' || mode === 'classification') return '打开原稿的摘要部分，对照本条指南核实。';
     return;
@@ -114,10 +119,10 @@ export function marginAdvice(finding: MarginFinding, report: Report): string | u
     return '先核实这行是否属于正文，再到 Word 或 WPS 原稿查看字号。';
   }
   switch (mode) {
-    case 'body_font': return '选中这段中的中文正文，在字体设置中选择宋体。';
-    case 'body_size': return `选中这段中的中文正文，将字号设为${setSizeLabel(item?.expected || `${check.rule.params.expected_pt} 磅`)}。`;
+    case 'body_font': return `选中${selection}，在字体设置中选择宋体。`;
+    case 'body_size': return `选中${selection}，将字号设为${setSizeLabel(item?.expected || `${check.rule.params.expected_pt} 磅`)}。`;
     case 'body_line': return `打开原稿的段落设置，将这段的行距调整为 ${check.rule.params.expected_pt} 磅。`;
-    case 'body_spacing': return '选中对应文字，在字体的高级设置中将字符间距改为标准。';
+    case 'body_spacing': return `选中${selection}，在字体的高级设置中将字符间距改为标准。`;
     case 'page_size': return report.document.format === 'pdf' ? '核实 PDF 的裁切范围，再检查原稿的纸张大小。' : '打开该节的页面设置，将纸张大小设为 A4。';
     case 'keywords': return `调整中文摘要末尾的关键词，保留 ${check.rule.params.minimum}–${check.rule.params.maximum} 个能概括论文内容的词语。`;
     case 'abstract_length': return '在原稿中单独选中摘要正文核对字数，再考虑是否调整篇幅。';
