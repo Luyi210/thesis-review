@@ -66,6 +66,13 @@ const compact = (text: string) => text.replace(/\s+/g, '');
 export function indexWordLayout(body: HTMLElement, doc: Report['document']) {
   const paragraphs = new Map(doc.paragraphs.map(paragraph => [paragraph.index, paragraph]));
   const objects = new Map(doc.objects.filter(object => object.id).map(object => [object.id, object]));
+  const imagesByParagraph = new Map<number, number>();
+  for (const object of doc.objects) {
+    const paragraph = object.location.paragraph;
+    if (object.kind === 'image' && paragraph && !object.hidden) {
+      imagesByParagraph.set(paragraph, (imagesByParagraph.get(paragraph) ?? 0) + 1);
+    }
+  }
   const tableCountsAgree = body.querySelectorAll('table').length === doc.objects.filter(o => o.kind === 'table').length;
   const nodes = [...body.querySelectorAll<HTMLElement>('p')].map(element => ({
     element, text: compact(element.textContent || ''),
@@ -91,6 +98,11 @@ export function indexWordLayout(body: HTMLElement, doc: Report['document']) {
         if (object?.kind === 'table' && !location.excerpt && object.location.paragraph === location.paragraph) {
           const table = element.closest('table');
           return table && tableCountsAgree ? [table] : [];
+        }
+        if (object?.kind === 'image' && !object.inline && !object.hidden && object.location.paragraph === location.paragraph
+            && imagesByParagraph.get(location.paragraph) === 1) {
+          const drawings = element.querySelectorAll<HTMLElement>('[data-float-placement]');
+          if (drawings.length === 1) return [drawings[0]];
         }
         if (object?.kind === 'image' && !source.text && !element.querySelector('img,svg')) return [];
         return [element];

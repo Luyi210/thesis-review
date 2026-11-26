@@ -78,4 +78,24 @@ describe('PDF body exclusions require layout evidence independent of the expecte
     markPageZones([comment, reference, caption], empty(), 600, 840);
     expect([comment, reference, caption].map(p => p.pdfRegion)).toEqual([undefined, undefined, 'caption']);
   });
+
+  it('recognizes a centered single-number vector figure caption and keeps neighboring prose in the body', () => {
+    const marks: PageMarks = { ...empty(), vectorFigures: [[140, 178, 455, 279]] };
+    const caption = row('图1 本研究的分析框架图', [245, 287, 349, 299]);
+    const reference = row('图1给出了分析框架', [242, 287, 352, 299]);
+    const definition = row('图1为本研究的分析框架', [240, 287, 354, 299]);
+    const side = row('图1 与前文相同的讨论', [65, 287, 180, 299]);
+    const body = row('此处是框架图后的正文。', [70, 321, 245, 333]);
+    markPageZones([caption, body], marks, 595, 842);
+    markPageZones([reference], marks, 595, 842);
+    markPageZones([definition], marks, 595, 842);
+    markPageZones([side], marks, 595, 842);
+    expect([caption, body, reference, definition, side].map(p => p.pdfRegion)).toEqual(
+      ['caption', undefined, undefined, undefined, undefined]);
+
+    const separated = row(caption.text, [253, 303, 341, 315]);
+    const intervening = row('原图与当前位置之间已有正文。', [70, 287, 290, 299]);
+    markPageZones([intervening, separated], marks, 595, 842);
+    expect(separated.caption).toBe(false);
+  });
 });

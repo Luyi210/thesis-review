@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { registerSW } from 'virtual:pwa-register';
-import { AlertCircle, BookOpen, Download, FileText, Info, LoaderCircle, MoreHorizontal, RefreshCw, Settings as SettingsIcon, Upload, X } from 'lucide-react';
+import { AlertCircle, BookOpen, CircleHelp, Download, FileText, Info, LoaderCircle, MoreHorizontal, RefreshCw, Settings as SettingsIcon, Upload, X } from 'lucide-react';
 import { Configuration } from './components/Configuration';
+import { GettingStarted } from './components/GettingStarted';
 import { marginInitialSelection } from './domain/marginNotes';
 import { FullReport } from './components/FullReport';
 import { MarginNotes } from './components/MarginNotes';
@@ -23,6 +24,7 @@ import { downloadJson, publicAsset } from './utils';
 
 const UTILITY_TITLES = { records: '完整检查记录', coverage: '图表与公式', versions: '版本对比', feedback: '教师反馈' } as const;
 type Panel = 'notes' | keyof typeof UTILITY_TITLES;
+const GUIDE_SEEN_KEY = 'thesis-guide-seen-v1';
 
 const SAMPLES = [
   { url: 'samples/mixed-run-format.docx', name: '合成样稿_同段不同字号.docx', label: '同段字号样稿.docx', short: 'Word 同段不同字号' },
@@ -69,6 +71,10 @@ export default function App() {
   const [focusLocation, setFocusLocation] = useState<Location | null>(null);
   const [selected, setSelected] = useState<{ id: string; item: number } | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(() => {
+    try { return localStorage.getItem(GUIDE_SEEN_KEY) !== '1'; }
+    catch { return true; }
+  });
   const [busy, setBusy] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const busyRef = useRef(false);
@@ -86,6 +92,8 @@ export default function App() {
   const activeRequest = useRef<string | null>(null);
   const runtime = useRef(new BrowserModel());
   const fileInput = useRef<HTMLInputElement>(null);
+  const uploadAction = useRef<HTMLButtonElement>(null);
+  const guideFromMenu = useRef(false);
   const latest = useRef(data);
   latest.current = data;
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -186,6 +194,15 @@ export default function App() {
     setFocusLocation(null);
     setPanel(value);
     if (value !== 'notes') requestAnimationFrame(() => drawerClose.current?.focus());
+  }
+  function dismissGuide() {
+    setGuideOpen(false);
+    try { localStorage.setItem(GUIDE_SEEN_KEY, '1'); } catch { /* The dialog can still be dismissed. */ }
+    requestAnimationFrame(() => {
+      const upload = uploadAction.current;
+      const target = !guideFromMenu.current && upload && !upload.disabled ? upload : toolsButton.current;
+      target?.focus({ preventScroll: true });
+    });
   }
   function clearExplanations() {
     setExplanations({});
@@ -364,6 +381,14 @@ export default function App() {
             <a href={publicAsset('rules/guide.pdf')} target="_blank" rel="noreferrer" onClick={() => setToolsOpen(false)}>
               <BookOpen size={14}/><span>学院撰写指南 (PDF)</span>
             </a>
+            <button type="button" onClick={() => {
+              guideFromMenu.current = true;
+              toolsButton.current?.focus();
+              setToolsOpen(false);
+              setGuideOpen(true);
+            }}>
+              <CircleHelp size={14}/><span>使用说明</span>
+            </button>
             <button type="button" disabled={locked} onClick={() => { toolsButton.current?.focus(); setToolsOpen(false); setConfigOpen(true); }}>
               <SettingsIcon size={14}/><span>引擎与规则设置</span>
             </button>
@@ -406,7 +431,7 @@ export default function App() {
                   <p role={busy ? 'status' : undefined}>
                     {busy ? progress : file ? file.name : '拖入 .docx 或 .pdf 原稿，全部规则在本机浏览器运行'}
                   </p>
-                  <button type="button" className="primary" disabled={locked} onClick={() => file ? void inspect(file) : fileInput.current?.click()}>
+                  <button type="button" className="primary" ref={uploadAction} disabled={locked} onClick={() => file ? void inspect(file) : fileInput.current?.click()}>
                     {busy ? <LoaderCircle className="spin" size={15}/> : <Upload size={15}/>}
                     <span>{busy ? '检查中' : file ? '重新检查' : '选择文件'}</span>
                   </button>
@@ -498,5 +523,6 @@ export default function App() {
     </main>
 
     {configOpen && <Configuration settings={settings} onApply={applySettings} onClose={() => setConfigOpen(false)} pack={pack} skill={skill} stage={stage} kind={kind} capability={capability} modelState={modelState} offlineReady={offlineReady} onLoadModel={loadModel} onCancelModel={() => runtime.current.cancel()}/>}
+    {guideOpen && <GettingStarted onClose={dismissGuide} onSample={() => void sample(0)} sampleDisabled={locked}/>}
   </div></TeacherFeedbackProvider>;
 }

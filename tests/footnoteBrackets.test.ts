@@ -75,6 +75,23 @@ it('leaves body citations, intact reference ranges and ambiguous numbering alone
   expect(inspect([], [{ code: 'pdf-textless', message: '第 1 页仅有扫描图像。', affectsPresence: true, page: 1 }]).check.items).toEqual([]);
 });
 
+it('keeps a split access date in its original footnote and still detects a real missing left bracket', () => {
+  const dates = [
+    ['[7] Source, reviewed [2024-02-0', '8] https://example.org/synthetic'],
+    ['［７］ 来源，访问日期［２０２４／１０／', '８］ 来源网址'],
+  ];
+  for (const texts of dates) {
+    const { check } = inspect(pageRows(1, texts));
+    expect(check.status).toBe('pass');
+    expect(check.items).toEqual([]);
+  }
+  const { check } = inspect(pageRows(1, [
+    '[7] Source, reviewed [2024-02-07]',
+    '8] This note really lacks an opening bracket',
+  ]));
+  expect(check.items.map(item => [item.observed, item.expected])).toEqual([['8]', '[8]']]);
+});
+
 it('shows the original and corrected label as a document-based note with teacher feedback', () => {
   const { report, check } = inspect([...pageRows(7, ['[26] 测点说明。']), ...pageRows(8, ['27] 样本来源。'])]);
   const notes = createElement(MarginNotes, { report, selected: { id: check.rule.id, item: 0 },

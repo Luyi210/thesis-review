@@ -14,6 +14,8 @@ const M = 'http://schemas.openxmlformats.org/officeDocument/2006/math';
 const p = (text: string, props = '') => `<w:p>${props ? `<w:pPr>${props}</w:pPr>` : ''}<w:r><w:t>${text}</w:t></w:r></w:p>`;
 const chapter = (number = '一') => p(`第${number}章 测试`, '<w:outlineLvl w:val="0"/>');
 const caption = (text = '图 1-1 合成图片') => p(text, '<w:jc w:val="center"/>');
+const tenPointParagraph = (text: string, props = '') =>
+  `<w:p>${props ? `<w:pPr>${props}</w:pPr>` : ''}<w:r><w:rPr><w:sz w:val="20"/></w:rPr><w:t>${text}</w:t></w:r></w:p>`;
 const image = (mode = 'inline') => `<w:r><w:drawing><wp:${mode}><a:graphic><a:blip r:embed="image1"/></a:graphic></wp:${mode}></w:drawing></w:r>`;
 const imageP = (mode = 'inline') => `<w:p>${image(mode)}</w:p>`;
 const table = (properties = '', inner = '') => `<w:tbl><w:tblPr>${properties}</w:tblPr><w:tr><w:tc>${p('表内测试文字')}${inner}</w:tc></w:tr></w:tbl>`;
@@ -25,6 +27,39 @@ async function audit(body: string) {
 const check = (report: Awaited<ReturnType<typeof audit>>, mode: string) => report.checks.find(c => c.rule.mode === mode)!;
 
 describe('native object and caption evidence', () => {
+  it.each(['图 1 合成测试示意图', '图 1 本研究的分析框架图'])('recognizes a manually entered single-number caption: %s', async title => {
+    const r = await audit(chapter() + imageP() + tenPointParagraph(title, '<w:jc w:val="center"/>') + tenPointParagraph('正文仍需检查字号。'));
+    expect(r.document.paragraphs[2].caption).toBe(true);
+    expect(check(r, 'body_size').items.map(item => item.location.paragraph)).toEqual([4]);
+    expect(check(r, 'caption_position').status).toBe('pass');
+    expect(r.structure?.objects[0].captionText).toBe(title);
+    expect(check(r, 'caption_number').status).toBe('manual');
+  });
+  it.each([
+    ['图1给出三组观测结果', 'center'],
+    ['图 1-1 所示为输入数据', 'center'],
+    ['图1 本研究发现两组存在差异。', 'center'],
+    ['图1为本研究的分析框架', 'left'],
+    ['图1是本研究的分析框架', 'left'],
+  ])(
+    'keeps a figure reference in the body, even directly after a picture: %s (%s)', async (text, alignment) => {
+      const r = await audit(chapter() + imageP() + tenPointParagraph(text, `<w:jc w:val="${alignment}"/>`));
+      expect(r.document.paragraphs[2].caption).toBe(false);
+      expect(check(r, 'body_size').items.map(item => item.location.paragraph)).toEqual([3]);
+      expect(r.structure?.objects[0].caption).toBeUndefined();
+    },
+  );
+  it('keeps a floated figure relationship manual even when its centered title can be identified', async () => {
+    const r = await audit(chapter() + imageP('anchor') + tenPointParagraph('图1 工程问题分析框架图', '<w:jc w:val="center"/>'));
+    expect(r.document.paragraphs[2].caption).toBe(true);
+    expect(check(r, 'body_size').items).toEqual([]);
+    expect(check(r, 'caption_position').status).toBe('manual');
+  });
+  it('requires nearby picture evidence for an unstyled single-number line', async () => {
+    const r = await audit(chapter() + tenPointParagraph('图1 工程问题分析框架图', '<w:jc w:val="center"/>'));
+    expect(r.document.paragraphs[1].caption).toBe(false);
+    expect(check(r, 'body_size').items.map(item => item.location.paragraph)).toEqual([2]);
+  });
   it('accepts a single inline picture with caption below and table with caption above', async () => {
     const r = await audit(chapter() + imageP() + caption() + p('普通正文') + caption('表 1-1 合成表格') + table());
     expect(check(r, 'caption_position').status).toBe('pass'); expect(check(r, 'caption_number').status).toBe('pass');

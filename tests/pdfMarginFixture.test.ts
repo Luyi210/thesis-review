@@ -63,3 +63,19 @@ it('links the real PDF sample line to its own size candidate and college referen
   expect(html).toContain('Word 或 WPS');
   expect(html).not.toContain('明确不符');
 });
+
+it('keeps a single-number vector figure caption out of body sizing while retaining actual prose', async () => {
+  const fixture = await readFile('tests/fixtures/vector-caption.pdf');
+  const document = await readPdf(Uint8Array.from(fixture).buffer, 'vector-caption.pdf', pack);
+  const review = auditDocument(document, 'proposal', 'report', pack, DEFAULT_SETTINGS);
+  const labels = document.paragraphs.filter(line => line.text.startsWith('图1'));
+  expect(labels.map(line => [line.text, line.page, line.pdfRegion])).toEqual([
+    ['图1本研究的分析框架图', 1, 'caption'],
+    ['图1为本研究的分析框架', 2, undefined],
+    ['图1试验过程', 3, undefined],
+  ]);
+  // All three labels have the same wrong-for-body size and centered alignment.
+  // Page 1's connected figure and caption syntax justify the exclusion.
+  expect(review.checks.find(check => check.rule.id === 'FMT-SIZE')?.items.map(item => item.location.page))
+    .toEqual([2, 3]);
+});

@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { ChevronLeft, ChevronRight, ArrowRight, ExternalLink } from 'lucide-react';
+import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, ArrowRight, ExternalLink, List, LocateFixed } from 'lucide-react';
 import { buildMarginPositions, inspectMarginSelection, marginAdvice, marginValues, type MarginFinding, type MarginSelection } from '../domain/marginNotes';
 import { explanationKey, usesRuleAdviceOnly } from '../model/contracts';
 import { OccurrenceExplanation, type ExplanationControls } from './OccurrenceExplanation';
@@ -91,22 +91,33 @@ function Finding({ finding, report, controls, onSelect }: {
 }
 
 export function MarginNotes({ report, selected, onSelect, controls }: Props) {
+  const [listAnchor, setListAnchor] = useState<{ reportId: string; selection: MarginSelection | null } | null>(null);
+  const listOpen = listAnchor !== null && listAnchor.reportId === report?.id && listAnchor.selection === selected;
+  const listId = useId();
+  const listButton = useRef<HTMLButtonElement>(null);
+  const list = useRef<HTMLOListElement>(null);
   const positions = useMemo(() => report ? buildMarginPositions(report) : [], [report]);
+  const findings = useMemo(() => positions.flatMap(position => position.findings), [positions]);
   const current = useMemo(() => report ? inspectMarginSelection(report, positions, selected) : undefined, [positions, report, selected]);
   const activeFinding = current?.findings.find(f => f.check.rule.id === selected?.id && f.itemIndex === selected.item) ?? current?.findings[0];
   const index = useMemo(() => current ? positions.indexOf(current) : -1, [positions, current]);
+  const location = activeFinding?.item?.location;
+  const canLocate = report?.document.format === 'pdf' ? Boolean(location?.page)
+    : Boolean(location?.paragraph || location?.objectId || location?.excerpt);
+
+  useLayoutEffect(() => {
+    if (listOpen) list.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest' });
+  }, [listOpen]);
 
   const counts = useMemo(() => {
     let fail = 0; let warning = 0; let manual = 0;
-    for (const pos of positions) {
-      for (const f of pos.findings) {
-        if (f.status === 'fail') fail++;
-        else if (f.status === 'warning') warning++;
-        else if (f.status === 'manual') manual++;
-      }
+    for (const f of findings) {
+      if (f.status === 'fail') fail++;
+      else if (f.status === 'warning') warning++;
+      else if (f.status === 'manual') manual++;
     }
     return { fail, warning, manual };
-  }, [positions]);
+  }, [findings]);
 
   function navigate(to: number) {
     const finding = positions[to]?.findings[0];
@@ -127,11 +138,17 @@ export function MarginNotes({ report, selected, onSelect, controls }: Props) {
     <header className="margin-heading margin-notes-header">
       <div className="margin-heading-row">
         <h2>页边批注</h2>
-        {positions.length > 0 && <nav className="note-navigation" aria-label="批注导航">
-          <button type="button" aria-label="上一处批注" title="上一处批注" disabled={index <= 0} onClick={() => navigate(index - 1)}><ChevronLeft size={15}/></button>
-          <span>{index < 0 ? `共 ${positions.length} 处` : `${index + 1} / ${positions.length}`}</span>
-          <button type="button" aria-label="下一处批注" title="下一处批注" disabled={index >= positions.length - 1} onClick={() => navigate(index < 0 ? first : index + 1)}><ChevronRight size={15}/></button>
-        </nav>}
+        {report && findings.length > 0 && <div className="margin-heading-actions">
+          <button type="button" ref={listButton} className="note-list-toggle" aria-expanded={listOpen} aria-controls={listId}
+            onClick={() => setListAnchor(listOpen ? null : { reportId: report.id, selection: selected })}>
+            <List size={14} aria-hidden="true"/>{listOpen ? '返回批注' : `全部批注（${findings.length} 项）`}
+          </button>
+          {!listOpen && <nav className="note-navigation" aria-label="批注导航">
+            <button type="button" aria-label="上一处批注" title="上一处批注" disabled={index <= 0} onClick={() => navigate(index - 1)}><ChevronLeft size={15}/></button>
+            <span>{index < 0 ? `共 ${positions.length} 处` : `${index + 1} / ${positions.length}`}</span>
+            <button type="button" aria-label="下一处批注" title="下一处批注" disabled={index >= positions.length - 1} onClick={() => navigate(index < 0 ? first : index + 1)}><ChevronRight size={15}/></button>
+          </nav>}
+        </div>}
       </div>
       {positions.length > 0 && <div className="margin-summary-strip" aria-label="位置与问题计数">
         <span className="sum-positions">{positions.length} 处位置</span>
@@ -141,13 +158,40 @@ export function MarginNotes({ report, selected, onSelect, controls }: Props) {
       </div>}
     </header>
 
-    <div className="margin-body">
+    <ol className="margin-list" id={listId} ref={list} aria-label="全部批注" hidden={!listOpen}>
+      {listOpen && report && findings.map(finding => {
+        const { check, item, itemIndex, status } = finding;
+        const excerpt = item?.formatSpan?.text ?? item?.location.excerpt;
+        return <li key={explanationKey(report.id, check.rule.id, itemIndex)}>
+          <button type="button" className="margin-list-item" aria-current={activeFinding === finding ? true : undefined}
+            onClick={() => {
+              setListAnchor(null);
+              onSelect(check.rule.id, itemIndex);
+              listButton.current?.focus({ preventScroll: true });
+            }}>
+            <span className="margin-list-title">
+              <strong>{noteTitle(finding)}</strong>
+              <span className={`note-status ${status}`}>{LABELS[status]}</span>
+            </span>
+            <span className="margin-list-context">
+              <span>{item ? prettyItemPosition(check.rule, item) : '整份材料'}</span>
+              {excerpt && <q>{excerpt.slice(0, 32)}{excerpt.length > 32 || item?.formatSpan?.truncated ? '…' : ''}</q>}
+            </span>
+          </button>
+        </li>;
+      })}
+    </ol>
+    <div className="margin-body" hidden={listOpen}>
       {current && report ? (
         <div className="margin-track">
           <div className={`note-content status-${activeFinding?.status ?? 'manual'}`} role="region" aria-label="当前批注" aria-live="polite">
             <p className="note-location">
               <span>{activeFinding?.item ? prettyItemPosition(activeFinding.check.rule, activeFinding.item) : current.location ? prettyPosition(current.location) : '整份材料'}</span>
               {current.findings.length > 1 && <span className="note-location-count">· {current.findings.length} 项</span>}
+              {canLocate && activeFinding && <button type="button" className="note-locate"
+                onClick={() => onSelect(activeFinding.check.rule.id, activeFinding.itemIndex)}>
+                <LocateFixed size={13} aria-hidden="true"/>定位原文
+              </button>}
             </p>
             {activeFinding && (
               <Finding key={explanationKey(report.id, activeFinding.check.rule.id, activeFinding.itemIndex)} finding={activeFinding} report={report} controls={controls} onSelect={onSelect}/>

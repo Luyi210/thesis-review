@@ -12,6 +12,14 @@ const child = (node: Element | null | undefined, name: string, ns = W): Element 
 const attr = (node: Element | null, name: string, fallback: string | null = null) => node?.hasAttributeNS(W, name) ? node.getAttributeNS(W, name) : fallback;
 const num = (s: string | null | undefined) => s !== null && s !== undefined && s !== '' && Number.isFinite(Number(s)) ? Number(s) : null;
 const hasAncestor = (node: Node, names: string[]) => { let p = node.parentNode; while (p) { if ((p as Element).namespaceURI === W && names.includes((p as Element).localName || '')) return true; p = p.parentNode; } return false; };
+const CHAPTER_CAPTION = /^[图表]\s*\d+\s*[-－—.．]\s*\d+/u;
+function isFigureTitle(text: string): boolean {
+  const number = /^图\s*\d+(?:\s*[-－—.．]\s*\d+)*/u.exec(text);
+  if (!number) return false;
+  const title = text.slice(number[0].length).trim();
+  return title.length > 0 && title.length <= 85 && !/[。！？；!?;\r\n]/u.test(text)
+    && !/^(?:中[的可列显给]|为|是|所示|如上|如下|(?:本研究|本文)(?:发现|认为|采用)|表明|显示|展示|给出|列出|呈现|可见|说明了|可以看出)/u.test(title);
+}
 interface RProps { eastAsia?: string; theme?: string; size?: number | null; spacing?: number | null; hidden?: boolean; complexScript?: boolean; rtl?: boolean; origin?: string }
 interface PProps { outline?: number | null; lineRule?: string | null; line?: number | null; align?: string | null }
 
@@ -141,6 +149,7 @@ export async function readDocx(buffer: ArrayBuffer, name: string, pack: RulePack
     }
   });
   fields.forEach(markField);
+  const figureTitleCandidates = new Map<number, boolean>();
   const paragraphs = ps.map((el, index) => {
     const base = styles.paragraph(el); const runs: Run[] = [];
     for (const r of all(el, 'r').filter(r => !hasAncestor(r, ['txbxContent', 'del', 'moveFrom']))) { const info = styles.run(r, base.runs); if (info) runs.push(info); else if (all(r, 't').some(t => t.textContent?.trim())) limit('hidden-text', '存在隐藏文字，常规视图内容与打印/显示设置需人工确认。'); }
@@ -151,7 +160,11 @@ export async function readDocx(buffer: ArrayBuffer, name: string, pack: RulePack
     const sdt = (() => { let n: Node | null = el; while (n) { if (n.nodeType === 1 && (n as Element).namespaceURI === W && (n as Element).localName === 'sdt') return n as Element; n = n.parentNode; } return null; })();
     const gallery = sdt ? all(sdt, 'docPartGallery').some(x => /^(目录|table of contents)$/i.test(attr(x, 'val', '') || '')) : false;
     p.toc = tocParagraphs.has(index) || gallery || /^(?:toc\s*\d|目录\s*\d)/i.test(base.name) || /[.．·…]{3,}\s*[\divxlcdm]+$/i.test(text);
-    p.caption = /caption|题注|图题|表题/i.test(base.name) || (/^[图表]\s*\d+\s*[-－—.．]\s*\d+/.test(text) && base.paras.align === 'center');
+    const centered = base.paras.align === 'center';
+    const figureTitle = isFigureTitle(text);
+    p.caption = /caption|题注|图题|表题/i.test(base.name)
+      || (centered && CHAPTER_CAPTION.test(text) && (text.startsWith('表') || figureTitle));
+    if (!p.caption && !p.toc && !p.inTable && !p.heading && figureTitle) figureTitleCandidates.set(p.index, centered);
     let objectIndex = 0;
     const hiddenObject = (node: Element) => { let r: Node | null = node.parentNode; while (r && r !== el) { if ((r as Element).namespaceURI === W && (r as Element).localName === 'r') return styles.run(r as Element, base.runs) === null; r = r.parentNode; } return false; };
     for (const d of [...all(el, 'drawing'), ...all(el, 'pict')].filter(d => !hasAncestor(d, ['del', 'moveFrom', 'txbxContent']))) {
@@ -192,6 +205,27 @@ export async function readDocx(buffer: ArrayBuffer, name: string, pack: RulePack
     }
   };
   walkBlocks(body);
+  if (figureTitleCandidates.size) {
+    const visibleImages = new Set<number>();
+    const standaloneInlineImages = new Set<number>();
+    for (const object of objects) {
+      const index = object.location.paragraph;
+      if (object.kind !== 'image' || !index || object.hidden || object.nested) continue;
+      visibleImages.add(index);
+      if (object.inline && !object.grouped && !paragraphs[index - 1].text) standaloneInlineImages.add(index);
+    }
+    // Handwritten captions can have no Word caption style. Check nearby picture
+    // evidence before removing a title-like line from ordinary body formatting.
+    blocks.forEach((block, index) => {
+      if (block.kind !== 'paragraph') return;
+      const centered = figureTitleCandidates.get(block.paragraph);
+      if (centered === undefined) return;
+      const images = centered ? visibleImages : standaloneInlineImages;
+      const adjacentImage = [blocks[index - 1], blocks[index + 1]]
+        .some(neighbor => neighbor?.kind === 'paragraph' && images.has(neighbor.paragraph));
+      if (adjacentImage || (centered && images.has(block.paragraph))) paragraphs[block.paragraph - 1].caption = true;
+    });
+  }
   let prior: { width: number | null; height: number | null } = { width: null, height: null };
   const sections = all(body, 'sectPr').map((s, i) => { const size = child(s, 'pgSz'); if (size) prior = { width: num(attr(size, 'w')), height: num(attr(size, 'h')) }; return { number: i + 1, width: prior.width === null ? null : prior.width / 1440 * 25.4, height: prior.height === null ? null : prior.height / 1440 * 25.4 }; });
   limitations.push(...limitationsByCode.values(), { code: 'browser-docx-scope', message: '浏览器首版核对已支持的普通中文正文属性；原生图表公式证据已列出，未完成复杂对象自动审核。', affectsPresence: false }, { code: 'word-preview', message: 'Word为浏览器布局预览，实际字体替换与分页以Word/WPS为准；定位不猜实际页码。', affectsPresence: false });

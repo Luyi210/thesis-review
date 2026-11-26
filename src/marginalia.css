@@ -716,6 +716,28 @@ a { color: var(--ink-secondary); text-underline-offset: 3px; }
   justify-content: space-between;
   gap: 8px;
 }
+.margin-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+.note-list-toggle, .note-locate {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+.note-list-toggle {
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.note-list-toggle:hover, .note-locate:hover { background: var(--surface-tinted); color: var(--ink); }
 .margin-heading h2, .utility-heading h2 {
   font-size: 14px;
   font-weight: 600;
@@ -780,6 +802,42 @@ a { color: var(--ink-secondary); text-underline-offset: 3px; }
   scrollbar-width: thin;
   scrollbar-color: #cfc9be transparent;
 }
+.margin-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  margin: 0;
+  padding: 8px 16px 16px;
+}
+.margin-list li + li { border-top: 1px solid var(--line); }
+.margin-list-item {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 9px 6px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.margin-list-item:hover, .margin-list-item[aria-current="true"] { background: var(--surface-tinted); }
+.margin-list-title, .margin-list-context {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.margin-list-title { justify-content: space-between; }
+.margin-list-title .note-status { flex-shrink: 0; }
+.margin-list-context { font-size: 11.5px; color: var(--muted); }
+.margin-list-context > span { flex-shrink: 0; }
+.margin-list-context q {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  quotes: "「" "」";
+}
 .margin-track {
   padding-top: var(--note-offset, 0px);
 }
@@ -805,6 +863,11 @@ a { color: var(--ink-secondary); text-underline-offset: 3px; }
   margin-bottom: 6px;
   font-size: 11.5px;
   color: var(--muted);
+}
+.note-locate {
+  margin-left: auto;
+  padding: 3px 4px;
+  border-radius: var(--radius-sm);
 }
 .note-title {
   display: flex;
@@ -1398,6 +1461,54 @@ a { color: var(--ink-secondary); text-underline-offset: 3px; }
 .coverage-note { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); line-height: 1.65; }
 .coverage-note summary { cursor: pointer; color: var(--ink-secondary); }
 .coverage-note ul { margin: 6px 0; padding-left: 16px; }
+
+.getting-started {
+  width: min(460px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: clamp(16px, 5vw, 26px);
+  border: 1px solid var(--line-strong);
+  border-top: 3px solid var(--accent);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 16px 48px rgba(38, 35, 32, .18);
+  overflow: auto;
+}
+.getting-started::backdrop { background: rgba(38, 35, 32, .32); }
+.getting-started > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.getting-started h2 {
+  margin: 0;
+  font: 600 clamp(20px, 4vw, 24px)/1.3 var(--serif);
+}
+.getting-started > p {
+  margin: 8px 0 0;
+  color: var(--ink-secondary);
+}
+.guide-workflow { margin: 16px 0; }
+.guide-workflow > div {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 9px 0;
+}
+.guide-workflow > div:last-child { border-bottom: 1px solid var(--line); }
+.guide-workflow dt { font-weight: 600; }
+.guide-workflow dd { margin: 0; color: var(--ink-secondary); }
+.getting-started .guide-model-note { font-size: 12.5px; }
+.getting-started > footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
 
 /* Settings Modal (macOS Native Clean Dialog) */
 .modal-backdrop {

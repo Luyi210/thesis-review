@@ -21,14 +21,30 @@ export function footnoteMarker(text: string): FootnoteMarker | undefined {
 
 type Label = FootnoteMarker & { line: Paragraph };
 type Result = Omit<Check, 'rule'>;
+
+function continuesBracketedDate(previous: Paragraph | undefined, line: Paragraph) {
+  if (previous?.page !== line.page || previous?.pdfRegion !== 'footnote'
+    || previous.bbox?.length !== 4 || line.bbox?.length !== 4) return false;
+  const gap = line.bbox[1] - previous.bbox[3];
+  if (gap < -2 || gap > previous.bbox[3] - previous.bbox[1]
+    || Math.abs(previous.bbox[0] - line.bbox[0]) > 10) return false;
+  const left = /\[\s*(\d{4}\s*[-./]\s*\d{1,2}\s*[-./]\s*\d?)\s*$/u.exec(previous.text.normalize('NFKC'))?.[1];
+  const right = /^\s*(\d{1,2})\]/u.exec(line.text.normalize('NFKC'))?.[1];
+  if (!left || !right) return false;
+  const date = /^\d{4}([-./])(\d{1,2})\1(\d{1,2})$/u.exec((left + right).replace(/\s/gu, ''));
+  return !!date && +date[2] >= 1 && +date[2] <= 12 && +date[3] >= 1 && +date[3] <= 31;
+}
+
 export function checkFootnoteBrackets(doc: AuditDocument): Result {
   if (doc.format !== 'pdf') return { status: 'not_applicable', summary: '此项读取 PDF 原生页脚。', executed: false, items: [] };
   const labels: Label[] = [];
-  for (const line of doc.paragraphs) {
+  for (const [index, line] of doc.paragraphs.entries()) {
     if (line.pdfRegion !== 'footnote' || line.inTable || line.toc || line.caption || line.heading
       || !line.page || line.bbox?.length !== 4 || !line.runs.length || line.runs.some(r => r.size == null)) continue;
     const marker = footnoteMarker(line.text);
-    if (marker) labels.push({ ...marker, line });
+    if (!marker) continue;
+    if (/^[0-9０-９]/u.test(marker.observed) && continuesBracketedDate(doc.paragraphs[index - 1], line)) continue;
+    labels.push({ ...marker, line });
   }
 
   const items: CheckItem[] = [];

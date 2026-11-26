@@ -46,4 +46,20 @@ describe('source-side margin marks', () => {
     expect(locate({ paragraph: 6, excerpt: '唯一片段' })).toEqual([third]);
     expect(locate({ section: 1 })).toEqual([]);
   });
+  it('locates a sole floating picture on the drawing while preserving the text anchor in that paragraph', () => {
+    const drawing = {};
+    const source = { classList: ['audit-source-1'], textContent: '合成正文',
+      querySelectorAll: (selector: string) => selector === '[data-float-placement]' ? [drawing] : [] };
+    const body = { querySelectorAll: (selector: string) => selector === 'p' ? [source] : [] } as unknown as HTMLElement;
+    const location = { paragraph: 1, objectId: 'image-1' };
+    const picture = { kind: 'image' as const, id: 'image-1', inline: false, location, detail: '' };
+    const doc: AuditDocument = {
+      name: 'test.docx', format: 'docx', sha256: '', bytes: 0, sections: [], limitations: [], objects: [picture],
+      paragraphs: [paragraph(1, source.textContent)],
+    };
+    expect(indexWordLayout(body, doc)(location)).toEqual([drawing]);
+    expect(indexWordLayout(body, doc)({ paragraph: 1 })).toEqual([source]);
+    const ambiguousDoc = { ...doc, objects: [picture, { ...picture, inline: true, id: 'image-2' }] };
+    expect(indexWordLayout(body, ambiguousDoc)(location)).toEqual([source]);
+  });
 });

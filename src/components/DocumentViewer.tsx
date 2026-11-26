@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, FileText, LoaderCircle, Minus, Plus } from '
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import type { Location, Report } from '../domain/types';
 import { wordRunOffsets, spanOffsets, renderedRange, clickedTextOffset } from './wordRanges';
+import { bindFloatingPictures, placeFloatingPictures, type WordPreviewNode } from './wordFloatingPictures';
 import { openPdf } from '../readers/pdf';
 import { groupPdfMarks, indexWordLayout, pdfBoundsKey, preferredMark, sourceMarks, visibleAnchorTop, type MarkSelection, type SourceMark } from './documentMarks';
 
@@ -23,7 +24,7 @@ export function DocumentViewer({ buffer, report, selected, focusLocation, onSele
   const [size, setSize] = useState({ width: 595, height: 842 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [layout, setLayout] = useState<{ body: HTMLElement; buffer: ArrayBuffer } | null>(null);
+  const [layout, setLayout] = useState<{ body: HTMLElement; buffer: ArrayBuffer; floatingLayoutUncertain: boolean } | null>(null);
   const canvasHost = useRef<HTMLDivElement>(null);
   const officeHost = useRef<HTMLDivElement>(null);
   const paperScroll = useRef<HTMLDivElement>(null);
@@ -78,13 +79,21 @@ export function DocumentViewer({ buffer, report, selected, focusLocation, onSele
       const body = document.createElement('div');
       host.replaceChildren(styles, body);
       void import('docx-preview').then(async lib => {
-        const options = { className: 'word-paper', inWrapper: true, renderAltChunks: false, renderChanges: false, renderComments: false, useBase64URL: true, ignoreLastRenderedPageBreak: true };
+        const floatingCount = report.document.objects.filter(o => o.kind === 'image' && !o.inline && !o.hidden).length;
+        const options = { className: 'word-paper', inWrapper: true, renderAltChunks: false, renderChanges: false, renderComments: false,
+          useBase64URL: true, ignoreLastRenderedPageBreak: true, keepOrigin: floatingCount > 0 };
         const parsed = await lib.parseAsync(buffer.slice(0), options);
         if (dead) return;
-        interface PreviewNode { type?: string; className?: string; children?: PreviewNode[] }
-        const sourceNodes: PreviewNode[] = [];
-        const walk = (node: PreviewNode) => { if (node.type === 'paragraph') sourceNodes.push(node); node.children?.forEach(walk); };
-        walk(parsed.documentPart.body as PreviewNode);
+        const sourceNodes: WordPreviewNode[] = [];
+        const drawings: WordPreviewNode[] = [];
+        const walk = (node: WordPreviewNode) => {
+          if (node.type === 'paragraph') sourceNodes.push(node);
+          if (floatingCount && node.type === 'drawing') drawings.push(node);
+          node.children?.forEach(walk);
+        };
+        walk(parsed.documentPart.body as WordPreviewNode);
+        // docx-preview discards original anchor coordinates unless keepOrigin is enabled.
+        const floatLayout = floatingCount ? bindFloatingPictures(parsed.documentPart._xmlDocument, drawings) : null;
         // Both readers must agree on paragraph count before using their source indices.
         if (sourceNodes.length === report.document.paragraphs.length) sourceNodes.forEach((p, i) => {
           p.className = ((p.className || '') + ' audit-source-' + (i + 1)).trim();
@@ -93,9 +102,16 @@ export function DocumentViewer({ buffer, report, selected, focusLocation, onSele
         if (dead) return;
         body.querySelectorAll('a').forEach(a => { a.removeAttribute('href'); a.removeAttribute('onclick'); });
         body.querySelectorAll('script,iframe,object,embed').forEach(x => x.remove());
+        let floatingLayoutUncertain = false;
+        if (floatLayout) {
+          await document.fonts?.ready;
+          if (dead) return;
+          const usedInline = placeFloatingPictures(body, floatLayout.pictures);
+          floatingLayoutUncertain = usedInline || floatLayout.unmatched || floatLayout.pictures.length < floatingCount;
+        }
         naturalWidth.current = body.querySelector<HTMLElement>('section')?.offsetWidth || 794;
         fitWidth();
-        setLayout({ body, buffer }); setLoading(false);
+        setLayout({ body, buffer, floatingLayoutUncertain }); setLoading(false);
       }).catch(e => {
         if (!dead) { setError('Word 布局预览失败：' + (e.message || e)); setLoading(false); }
       });
@@ -216,11 +232,13 @@ export function DocumentViewer({ buffer, report, selected, focusLocation, onSele
   // A paragraph clicked in the manuscript is already visible and stays where it was.
   useLayoutEffect(() => {
     const scroll = paperScroll.current;
-    const target = isPdf ? pdfActive.current : wordActive;
+    const pageOnly = isPdf && selectedLocation?.page === page && !selectedBox;
+    const target = isPdf ? (pageOnly ? scroll : pdfActive.current) : wordActive;
     if (!target || !scroll || loading || error) return;
     const previous = revealed.current;
     if (previous?.target === target && previous.selection === selected && previous.focus === focusLocation) return;
     revealed.current = { target, selection: selected, focus: focusLocation };
+    if (pageOnly) { scroll.scrollTop = 0; return; }
     const rect = target.getBoundingClientRect(), frame = scroll.getBoundingClientRect();
     if (rect.bottom <= frame.top || rect.top >= frame.bottom) {
       scroll.scrollTop += rect.top - frame.top - Math.max(16, (frame.height - rect.height) / 2);
@@ -228,7 +246,7 @@ export function DocumentViewer({ buffer, report, selected, focusLocation, onSele
     if (rect.right <= frame.left || rect.left >= frame.right) {
       scroll.scrollLeft += rect.left - frame.left - 16;
     }
-  }, [selected, focusLocation, wordActive, isPdf, selectedBox, error, loading]);
+  }, [selected, focusLocation, wordActive, isPdf, page, selectedLocation, selectedBox, error, loading]);
 
   useLayoutEffect(() => {
     const scroll = paperScroll.current;
@@ -285,6 +303,9 @@ export function DocumentViewer({ buffer, report, selected, focusLocation, onSele
         <button className="fit-width" onClick={() => { fitAutomatically.current = true; fitWidth(); }}>适应宽度</button>
       </div>
     </div>
+    {layout?.floatingLayoutUncertain && <div className="mapping-note" role="status">
+      含复杂浮动图，预览位置可能不同。核对图文排版时请查看 Word/WPS 原稿或上传导出的 PDF。
+    </div>}
     {mapping && <div className="mapping-note" role="status">{mapping}</div>}
     <div className="paper-scroll" ref={paperScroll}>
       {loading && <div className="render-loading"><LoaderCircle className="spin" size={20}/>正在准备原文预览…</div>}

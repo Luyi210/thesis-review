@@ -27,7 +27,7 @@ export function useMarginLeader(layout: RefObject<HTMLElement | null>, selection
       frame = 0;
       const compact = window.matchMedia('(max-width: 820px)').matches;
       const selected = root.querySelector<HTMLElement>('.audit-active, .annotation.active');
-      if (compact || !selected || anchor.current === null || !viewport) {
+      if (compact || margin.hidden || !selected || anchor.current === null || !viewport) {
         track.style.setProperty('--note-offset', '0px');
         line.removeAttribute('d');
         return;

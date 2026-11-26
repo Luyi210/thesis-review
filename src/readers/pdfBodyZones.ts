@@ -14,6 +14,18 @@ function isClose(previous: Line, line: Line) {
   return gap >= -2 && gap <= Math.max(5, height(previous) * 0.65);
 }
 
+function belowFigure(line: Line, figure: Box) {
+  const midpoint = (line.bbox[0] + line.bbox[2]) / 2;
+  return line.bbox[1] >= figure[3] - 3 && line.bbox[1] <= figure[3] + 24
+    && midpoint >= figure[0] && midpoint <= figure[2];
+}
+
+function belongsToVectorFigure(line: Line, previous: Line | undefined, figure: Box) {
+  if (!belowFigure(line, figure) || !withinX(line.bbox, figure)
+    || (previous && previous.bbox[3] > figure[3] + 3)) return false;
+  return near((line.bbox[0] + line.bbox[2]) / 2, (figure[0] + figure[2]) / 2, (figure[2] - figure[0]) * .12);
+}
+
 // Match a bounded grid beneath a table caption. A line crossing its side or
 // missing the bottom border stays available to the normal body check.
 function tableGrid(caption: Line, marks: PageMarks): Box | undefined {
@@ -80,15 +92,15 @@ export function markPageZones(paragraphs: Paragraph[], marks: PageMarks, pageWid
     // Ordinary sentences can start with "图2给出…" or "表1中可见…".
     const title = /^(图|表)\s*\d+(?:\s*[-－—.．]\s*\d+)*\s*(.*)$/u.exec(p.text);
     if (!title || p.excluded || p.toc || !title[2] || title[2].length > 85 || /[。！？；]/.test(title[2])
-      || /^(?:所示|表明|显示|展示|给出|列出|呈现|可见|说明了|中[的可列显给])/.test(title[2])) continue;
+      || /^(?:为|是|系|所示|如上|如下|表明|显示|展示|给出|列出|呈现|可见|说明了|可以看出|中[的可列显给])/.test(title[2])) continue;
     const grid = title[1] === '表' ? tableGrid(p, marks) : undefined;
-    const underImage = title[1] === '图' && marks.images.some(b => p.bbox[1] >= b[3] - 3 && p.bbox[1] <= b[3] + 24
-      && (p.bbox[0] + p.bbox[2]) / 2 >= b[0] && (p.bbox[0] + p.bbox[2]) / 2 <= b[2]);
+    const underFigure = title[1] === '图' && (marks.images.some(b => belowFigure(p, b))
+      || marks.vectorFigures?.some(b => belongsToVectorFigure(p, lines[i - 1], b)));
     // Retain conventionally numbered captions in text-only, single-column
     // previews when their position also supports a caption reading.
     const centeredChapterCaption = /^[图表]\s*\d+\s*[-－—.．]\s*\d+/.test(p.text)
       && near((p.bbox[0] + p.bbox[2]) / 2, pageWidth / 2, pageWidth * .035);
-    if (!grid && !underImage && !centeredChapterCaption) continue;
+    if (!grid && !underFigure && !centeredChapterCaption) continue;
     p.caption = true;
     p.pdfRegion = 'caption';
     if (grid) {
@@ -99,7 +111,7 @@ export function markPageZones(paragraphs: Paragraph[], marks: PageMarks, pageWid
           row.pdfRegion = 'table';
         }
       }
-    } else if (underImage) markCaptionNotes(lines, i + 1);
+    } else if (underFigure) markCaptionNotes(lines, i + 1);
   }
 }
 
