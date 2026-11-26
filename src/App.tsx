@@ -15,7 +15,7 @@ import { CoveragePanel } from './components/CoveragePanel';
 import { VersionsPanel } from './components/VersionsPanel';
 import { captureVersion, compareVersions, retainVersions, versionProvenance, type VersionSnapshot } from './domain/versions';
 import type { Location } from './domain/types';
-import { loadSkill, readSettings } from './domain/config';
+import { loadSkill, MODELS, readSettings } from './domain/config';
 import { loadRules } from './domain/rules';
 import { STAGES, type Check as AuditCheck, type MaterialKind, type RulePack, type Settings, type Skill, type Stage } from './domain/types';
 import { runWorkflow, type WorkflowResult } from './domain/workflow';
@@ -124,7 +124,9 @@ export default function App() {
       if (c.webgpu) {
         const cached = await runtime.current.checkCache(settings.modelId).catch(() => false);
         if (dead) return;
-        if (cached && settings.autoLoadCached) void runtime.current.load(settings).catch(() => {});
+        if (cached && settings.autoLoadCached && runtime.current.state.phase === 'idle') {
+          void runtime.current.load(settings).catch(() => {});
+        }
       }
     });
     if (import.meta.env.PROD) {
@@ -290,7 +292,10 @@ export default function App() {
   }
   const explanationControls: ExplanationControls = {
     phase: modelState.phase, pendingKey, errors: explanationErrors, results: explanations,
-    onExplain: explain, onConfigure: () => setConfigOpen(true), onCancel: () => runtime.current.cancel(),
+    onExplain: explain, onLoadModel: capability?.webgpu ? loadModel : undefined,
+    modelDownload: MODELS.find(model => model.id === settings.modelId)?.download,
+    modelProgress: modelState.progress,
+    onConfigure: () => setConfigOpen(true), onCancel: () => runtime.current.cancel(),
   };
   const currentVersion = versions.find(v => v.result.report.id === data?.report.id) || null;
   const baseline = versions.find(v => v.result.report.id === baselineId) || null;

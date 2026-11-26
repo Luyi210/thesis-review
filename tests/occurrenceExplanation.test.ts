@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { OccurrenceExplanation, type ExplanationControls } from '../src/components/OccurrenceExplanation';
 import type { Check, Report, Skill } from '../src/domain/types';
 import { DEFAULT_SETTINGS } from '../src/domain/config';
 import { buildMessages, explanationKey, explanationSchema, explanationTarget } from '../src/model/contracts';
@@ -91,5 +94,32 @@ describe('evidence for an individual annotation', () => {
     runtime.cancel();
     await expect(pending).rejects.toThrow('取消');
     expect(runtime.state.phase).toBe('idle');
+  });
+});
+
+describe('browser model preparation from an annotation', () => {
+  function render(controls: Partial<ExplanationControls>) {
+    return renderToStaticMarkup(createElement(OccurrenceExplanation, {
+      check, itemIndex: 0, target: explanationTarget(report, check, 0).key,
+      controls: {
+        phase: 'idle', pendingKey: null, errors: {}, results: {},
+        onExplain: vi.fn(), onConfigure: vi.fn(), onCancel: vi.fn(), ...controls,
+      },
+    }));
+  }
+
+  it('shows a direct download with its size when available and settings otherwise', () => {
+    const supported = render({ onLoadModel: vi.fn(), modelDownload: '约 984 MB' });
+    expect(supported).toContain('下载或加载本机模型');
+    expect(supported).toContain('首次下载约 984 MB');
+    expect(render({})).toContain('查看本机模型配置');
+  });
+
+  it('shows cancellable progress during preparation and the explain action when ready', () => {
+    const loading = render({ phase: 'loading', modelProgress: 0.25 });
+    expect(loading).toContain('aria-label="本机模型准备进度"');
+    expect(loading).toContain('value="0.25"');
+    expect(loading).toContain('取消准备本机模型');
+    expect(render({ phase: 'ready' })).toContain('用本地模型解释这一处');
   });
 });
