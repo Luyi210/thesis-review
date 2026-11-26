@@ -1,6 +1,7 @@
 #!/bin/zsh
 set -eu
 cd -- "${0:A:h}"
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 THESIS_WEB_NODE="$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
 if [[ ! -x "$THESIS_WEB_NODE" ]]; then
   THESIS_WEB_NODE="$(command -v node || true)"

@@ -1,4 +1,5 @@
 import type { Paragraph } from '../domain/types';
+import { footnoteMarker } from '../domain/footnotes';
 import type { Box, PageMarks } from './pdfGraphics';
 
 type Line = Paragraph & { bbox: number[] };
@@ -59,7 +60,7 @@ function markFootnotes(lines: Line[], marks: PageMarks, pageWidth: number, pageH
     if (start < 0) continue;
     const first = lines[start];
     if (first.bbox[1] - bar[3] > 18 || !near(first.bbox[0], bar[0], 5)
-      || !/^[\[［]\s*\d{1,4}(?:\s*[\]］]|\s+\p{L})/u.test(first.text)) continue;
+      || (!/^[\[［]\s*\d{1,4}(?:\s*[\]］]|\s+\p{L})/u.test(first.text) && !footnoteMarker(first.text))) continue;
     for (let i = start; i < lines.length; i++) {
       const line = lines[i];
       const gap = i > start ? line.bbox[1] - lines[i - 1].bbox[3] : 0;

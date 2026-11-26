@@ -17,7 +17,7 @@ export interface ReviewLabels {
 export const emptyLabels: ReviewLabels = { accuracy: 'unrated', advice: 'unrated', comment: '', replacement: '' };
 export interface FeedbackModelAdvice { text: string; steps: string[]; modelId: string; skillVersion: string }
 export type AdviceSnapshot = { source: 'template'; text: string } | ({ source: 'model' } & FeedbackModelAdvice);
-type RuleReference = { id: string; title: string; page: number; quote: string };
+type RuleReference = { id: string; title: string; page?: number; quote: string; kind?: 'document' };
 type Source = Pick<Report, 'id' | 'engine' | 'stage' | 'kind' | 'createdAt' | 'ruleVersion'> & {
   fileHash: string; format: 'docx' | 'pdf';
 };
@@ -39,7 +39,8 @@ function reportSource(report: Report): Source {
     ruleVersion: report.ruleVersion, fileHash: report.document.sha256, format: report.document.format };
 }
 function ruleReference(rule: Rule): RuleReference {
-  return { id: rule.id, title: rule.title, page: rule.source.pdf_page, quote: rule.source.quote };
+  return { id: rule.id, title: rule.title, page: rule.source.pdf_page, quote: rule.source.quote,
+    ...(rule.source.kind === 'document' ? { kind: 'document' as const } : {}) };
 }
 export function findingFeedbackKey(reportId: string, ruleId: string, itemIndex: number) {
   return JSON.stringify([reportId, ruleId, itemIndex]);

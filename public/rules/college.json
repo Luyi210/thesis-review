@@ -1,6 +1,6 @@
 {
   "id": "fudan-education-master-2026-05-26",
-  "version": "0.1.1",
+  "version": "0.1.1+doc.1",
   "review_status": "draft_teacher_review_required",
   "title": "复旦高教所教育硕士学位论文撰写指南试验规则",
   "source": {
@@ -921,6 +921,24 @@
         "quote": "导师须审核问卷内容。问卷发放前，必须经过基础教育学校和代教老师同意。"
       },
       "note": "条件性条款：涉及问卷时适用；文中出现相关词语不能证明已取得许可。",
+      "params": {}
+    },
+    {
+      "id": "DOC-FOOTNOTE-BRACKETS",
+      "title": "脚注编号的方括号",
+      "mode": "footnote_brackets",
+      "stages": [
+        "proposal",
+        "midterm",
+        "predefense"
+      ],
+      "strength": "recommendation",
+      "source": {
+        "kind": "document",
+        "section": "同稿脚注编号",
+        "quote": "对照本稿中连续编号脚注的方括号写法。"
+      },
+      "note": "对照可识别的 PDF 页脚与同稿完整编号，核对左右方括号。",
       "params": {}
     }
   ]

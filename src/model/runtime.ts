@@ -1,12 +1,12 @@
 import type { MLCEngineInterface, InitProgressReport } from '@mlc-ai/web-llm';
 import type { Check, Explanation, Location, Report, Settings, Skill, Status } from '../domain/types';
-import { buildMessages, explanationSchema, explanationTarget, normalizeWebLLMOutput, validateEvidenceTone, validateExplanations, validateTargetReferences } from './contracts';
+import { buildMessages, explanationSchema, explanationTarget, normalizeWebLLMOutput, usesRuleAdviceOnly, validateEvidenceTone, validateExplanations, validateTargetReferences } from './contracts';
 
 export interface Capability { webgpu: boolean; device: string; maxBufferMB: number; reason?: string }
 export interface ModelState { phase: 'idle' | 'loading' | 'ready' | 'generating' | 'error'; progress: number; text: string; modelId?: string; error?: string; cached?: boolean }
 export interface ModelEvidence {
   explanations: Explanation[]; documentSha256: string; reportId: string; modelId: string;
-  targetKey: string; ruleId: string; itemIndex: number; status: Status; sourcePage: number; location?: Location;
+  targetKey: string; ruleId: string; itemIndex: number; status: Status; sourcePage?: number; location?: Location;
   skillVersion: string; milliseconds: number; usage: unknown; raw: string;
 }
 export async function probeWebGPU(): Promise<Capability> {
@@ -61,6 +61,7 @@ export class BrowserModel {
     } finally { if (timeout) clearTimeout(timeout); }
   }
   async explain(report: Report, check: Check, skill: Skill, settings: Settings, itemIndex = -1): Promise<ModelEvidence> {
+    if (usesRuleAdviceOnly(check)) throw new Error('脚注编号的改法由原稿中的编号直接确定。请查看此处的规则批注。');
     if (!this.engine || this.state.phase !== 'ready' || this.state.modelId !== settings.modelId || this.loadedContext !== settings.contextWindow) throw new Error('请按当前配置加载本地模型。');
     const engine = this.engine; const epoch = this.epoch; const start = performance.now();
     if (report.checks && !report.checks.includes(check)) throw new Error('该检查项不属于当前稿件。');

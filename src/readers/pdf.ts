@@ -3,6 +3,7 @@ import type { TextItem } from 'pdfjs-dist/types/src/display/api';
 import { getDocument, GlobalWorkerOptions, OPS, type PDFDocumentProxy } from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import type { AuditDocument, Limitation, Paragraph, RulePack } from '../domain/types';
+import { footnoteMarker } from '../domain/footnotes';
 import { cleanTitle, digest, headingInfo, headingNames, paragraph } from './shared';
 import { markPageZones, markRunningMargins, type PageBoundary } from './pdfBodyZones';
 import { pageMarks } from './pdfGraphics';
@@ -65,6 +66,22 @@ export async function readPdf(buffer: ArrayBuffer, name: string, pack: RulePack,
       if (!items.length) limitations.push({ code: 'pdf-textless', message: `第${number}页无原生文字；网页扫描OCR尚未接入，不能据此判定材料缺失。`, affectsPresence: true, page: number });
       const operators = await page.getOperatorList();
       markPageZones(pageParagraphs, pageMarks(operators, viewport.transform), viewport.width, viewport.height);
+      // A PDF text item may include both the number and its citation. Never infer
+      // a character width inside such an item; retain the line anchor in that case.
+      for (const [i, p] of pageParagraphs.entries()) {
+        if (p.pdfRegion !== 'footnote') continue;
+        const marker = footnoteMarker(p.text);
+        if (!marker || marker.observed === marker.expected) continue;
+        let prefix = '';
+        let box: number[] | undefined;
+        for (const r of lines[i]) {
+          prefix += r.item.str;
+          const selected = prefix.trim();
+          if (!marker.observed.startsWith(selected)) break;
+          box = box ? union(box, r.bbox) : r.bbox;
+          if (selected === marker.observed) { p.pdfMarkerBox = box; break; }
+        }
+      }
       pages.push({ paragraphs: pageParagraphs, width: viewport.width, height: viewport.height });
       const imageOps = new Set([OPS.paintImageXObject, OPS.paintInlineImageXObject, OPS.paintImageMaskXObject, OPS.paintImageXObjectRepeat]);
       if (operators.fnArray.some(x => imageOps.has(x))) limitations.push({ code: 'pdf-image-content', message: `第${number}页存在图像绘制内容；图内文字和公式尚未识别。`, affectsPresence: true, page: number });

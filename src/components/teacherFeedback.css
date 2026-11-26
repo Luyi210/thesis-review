@@ -1,21 +1,153 @@
-.finding-feedback, .missed-feedback { margin: 10px 0; color: var(--ink); font-size: 13px; }
-.finding-feedback > summary, .missed-feedback > summary, .feedback-quote > summary { width: fit-content; color: #735942; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-.feedback-form { display: grid; gap: 9px; padding-block: 10px 4px; }
-.feedback-form label, .feedback-tools label { display: grid; gap: 4px; color: #564a40; font-size: 13px; }
-.feedback-form :is(select, textarea, input), .feedback-tools select { width: 100%; min-width: 0; padding: 5px 7px; background: #fffefa; border: 1px solid #cbbfb1; border-radius: 3px; color: #322f2b; font: inherit; }
-.feedback-form textarea { resize: vertical; min-height: 55px; }
-.feedback-save, .feedback-tools button, .feedback-actions button { justify-self: start; padding: 5px 9px; border: 1px solid #cbbfb1; border-radius: 3px; background: transparent; color: #593d2d; font-size: 13px; }
-.feedback-meta, .feedback-status { color: #76685e; font-size: 12px; line-height: 1.6; }
-.feedback-status:empty { display: none; }
-.feedback-quote p, .feedback-quote ol { margin: 6px 0; }
-.feedback-quote ol { padding-left: 1.5rem; }
-.feedback-panel { font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; }
-.feedback-tools, .feedback-actions { display: flex; align-items: end; gap: 7px; flex-wrap: wrap; margin-block: 12px; }
-.feedback-entry { border-top: 1px solid #ded7cd; }
-.feedback-entry > button { display: block; width: 100%; text-align: left; padding: 9px 0; color: #493b30; }
-.feedback-entry > button small { display: block; color: #74685e; font-size: 12px; }
-.feedback-existing { padding: 0 0 12px; }
-.feedback-existing blockquote { margin: 6px 0; border-left: 2px solid #c7b39b; padding-left: 10px; }
-.feedback-existing p { margin-block: 5px; }
+/* Isolated Slate-Indigo Zone for Teacher Feedback (Clearly Separated from System Rules) */
+.finding-feedback {
+  margin-top: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--teacher-line, #d6dde6);
+  border-left: 3px solid var(--teacher, #4b5c73);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--teacher-bg, #f5f7fa);
+  color: var(--ink, #262320);
+  font-size: 12.5px;
+}
 
-.feedback-match { display: block; width: 100%; padding: 5px 2px; border-bottom: 1px solid #ded7cd; text-align: left; line-height: 1.5; color: #593d2d; }
+.missed-feedback {
+  margin: 8px 0 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--line, #e4e0d8);
+  border-radius: var(--radius-md, 6px);
+  background: var(--surface, #ffffff);
+  font-size: 12.5px;
+}
+
+.finding-feedback > summary,
+.missed-feedback > summary,
+.feedback-quote > summary {
+  width: fit-content;
+  color: var(--teacher, #4b5c73);
+  font-weight: 500;
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.feedback-form {
+  display: grid;
+  gap: 8px;
+  padding-top: 9px;
+}
+
+.feedback-form label,
+.feedback-tools label {
+  display: grid;
+  gap: 4px;
+  color: var(--ink-secondary, #524c46);
+  font-size: 12px;
+}
+
+.feedback-form :is(select, textarea, input),
+.feedback-tools select {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--line-strong, #cfc9be);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--ink, #262320);
+  font-size: 12.5px;
+}
+
+.feedback-form textarea {
+  resize: vertical;
+  min-height: 54px;
+  line-height: 1.55;
+}
+
+.feedback-save,
+.feedback-tools button,
+.feedback-actions button {
+  justify-self: start;
+  padding: 5px 11px;
+  border: 1px solid var(--line-strong, #cfc9be);
+  border-radius: var(--radius-sm, 4px);
+  background: var(--surface, #ffffff);
+  color: var(--ink, #262320);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.feedback-save:hover:not(:disabled),
+.feedback-tools button:hover:not(:disabled),
+.feedback-actions button:hover:not(:disabled) {
+  background: var(--surface-tinted, #f0ede7);
+}
+
+.feedback-meta,
+.feedback-status {
+  color: var(--muted, #7a736b);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+.feedback-status:empty { display: none; }
+
+.feedback-quote p,
+.feedback-quote ol { margin: 5px 0; font-size: 12px; color: var(--ink-secondary, #524c46); }
+.feedback-quote ol { padding-left: 1.3rem; }
+
+.feedback-panel {
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.feedback-tools,
+.feedback-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-block: 10px;
+}
+
+.feedback-entry {
+  border-top: 1px solid var(--line, #e4e0d8);
+}
+
+.feedback-entry > button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 2px;
+  color: var(--ink, #262320);
+  font-size: 13px;
+}
+.feedback-entry > button:hover { background: var(--surface-tinted, #f0ede7); }
+.feedback-entry > button small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted, #7a736b);
+  font-size: 11.5px;
+}
+
+.feedback-existing {
+  padding: 4px 2px 12px;
+  font-size: 12.5px;
+  color: var(--ink-secondary, #524c46);
+}
+.feedback-existing blockquote {
+  margin: 6px 0;
+  border-left: 2px solid var(--teacher, #4b5c73);
+  padding-left: 9px;
+  color: var(--ink, #262320);
+}
+.feedback-existing p { margin-block: 4px; }
+
+.feedback-match {
+  display: block;
+  width: 100%;
+  padding: 5px 4px;
+  border-bottom: 1px solid var(--line, #e4e0d8);
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink, #262320);
+}
+.feedback-match:hover { background: var(--surface-tinted, #f0ede7); }

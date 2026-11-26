@@ -1,0 +1,19 @@
+{
+  "version": "doc.1",
+  "rules": [
+    {
+      "id": "DOC-FOOTNOTE-BRACKETS",
+      "title": "脚注编号的方括号",
+      "mode": "footnote_brackets",
+      "stages": ["proposal", "midterm", "predefense"],
+      "strength": "recommendation",
+      "source": {
+        "kind": "document",
+        "section": "同稿脚注编号",
+        "quote": "对照本稿中连续编号脚注的方括号写法。"
+      },
+      "note": "对照可识别的 PDF 页脚与同稿完整编号，核对左右方括号。",
+      "params": {}
+    }
+  ]
+}

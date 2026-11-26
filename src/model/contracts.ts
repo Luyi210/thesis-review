@@ -4,13 +4,17 @@ export function explanationKey(reportId: string, ruleId: string, itemIndex: numb
   return [encodeURIComponent(reportId), encodeURIComponent(ruleId), itemIndex].join('/');
 }
 
+export function usesRuleAdviceOnly(check: Check) {
+  return check.rule.mode === 'footnote_brackets';
+}
+
 export interface ExplanationTarget {
   key: string;
   ruleId: string;
   itemIndex: number;
   status: Status;
   item?: CheckItem;
-  sourcePage: number;
+  sourcePage?: number;
 }
 
 export function explanationTarget(report: Report, check: Check, itemIndex: number): ExplanationTarget {

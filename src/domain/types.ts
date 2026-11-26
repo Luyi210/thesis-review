@@ -10,6 +10,7 @@ export interface Paragraph {
   toc: boolean; inTable: boolean; excluded: boolean; caption: boolean;
   lineRule: string | null; lineTwips: number | null; page?: number; bbox?: number[];
   previewText?: string;
+  pdfMarkerBox?: number[]; // Bounds of a leading footnote number when PDF text items isolate it exactly.
   pdfRegion?: 'running' | 'footnote' | 'caption' | 'table';
 }
 export interface Limitation { code: string; message: string; affectsPresence: boolean; page?: number }
@@ -33,7 +34,7 @@ export interface AuditDocument {
 }
 export interface Rule {
   id: string; title: string; mode: string; stages: Stage[]; strength: string; note: string;
-  source: { pdf_page: number; section: string; quote: string };
+  source: { kind?: 'guide' | 'document'; pdf_page?: number; section: string; quote: string };
   params: { aliases?: string[]; kinds?: MaterialKind[]; expected_pt?: number; expected_twips?: number; minimum?: number; maximum?: number; width_mm?: number; height_mm?: number };
 }
 export interface RulePack { id: string; version: string; title: string; review_status: string; source: { sha256: string; document_date: string }; rules: Rule[]; scope_notes: string[] }

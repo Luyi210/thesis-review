@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { LABELS, type Report, type Status } from '../domain/types';
-import { prettyPosition, publicAsset } from '../utils';
+import { prettyItemPosition } from '../utils';
+import { RuleSource } from './RuleSource';
 
 interface Props {
   report: Report;
@@ -24,10 +25,10 @@ export function FullReport({ report, onSelect }: Props) {
         {open === id && <div className="record-detail">
           <p>{check.summary}</p>
           {check.items.map((item, i) => <button className="record-location" key={i} onClick={() => onSelect(id, i)}>
-            {prettyPosition(item.location)} · {LABELS[item.status]}{item.formatSpan && <q>{item.formatSpan.text}{item.formatSpan.truncated && '…'}</q>}<br/>{item.observed}{item.expected && ' → ' + item.expected}
+            {prettyItemPosition(check.rule, item)} · {LABELS[item.status]}{item.formatSpan && <q>{item.formatSpan.text}{item.formatSpan.truncated && '…'}</q>}<br/>{item.observed}{item.expected && ' → ' + item.expected}
           </button>)}
           <blockquote>{check.rule.source.quote}</blockquote>
-          <a href={publicAsset('rules/guide.pdf#page=' + check.rule.source.pdf_page)} target="_blank" rel="noreferrer">《撰写指南》第 {check.rule.source.pdf_page} 页</a>
+          <RuleSource source={check.rule.source}/>
           {check.executed && check.status !== 'not_applicable' && <button className="text-button" onClick={() => onSelect(id, -1)}>在页边查看整项记录</button>}
         </div>}
       </article>;

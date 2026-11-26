@@ -60,6 +60,13 @@ describe('evidence for an individual annotation', () => {
     expect(result).toMatchObject({ reportId: report.id, targetKey: explanationKey(report.id, check.rule.id, 1),
       itemIndex: 1, ruleId: 'FMT-SIZE', sourcePage: 6, status: 'fail', documentSha256: 'abc', location: check.items[1].location });
   });
+  it('leaves footnote bracket corrections to the rule even with a loaded model', async () => {
+    const local: Check = { ...check, rule: { ...check.rule, mode: 'footnote_brackets' } };
+    const tokenize = vi.fn(async () => [1]);
+    await expect(setup('27 应改为 26', tokenize).explain({ ...report, checks: [local] }, local, skill, DEFAULT_SETTINGS, 0))
+      .rejects.toThrow('脚注编号');
+    expect(tokenize).not.toHaveBeenCalled();
+  });
   it('rejects stale rule objects, stale occurrence output and a mismatched evidence status', async () => {
     await expect(setup(output(1)).explain(report, { ...check }, skill, DEFAULT_SETTINGS, 1)).rejects.toThrow('当前稿件');
     await expect(setup(output(0)).explain(report, check, skill, DEFAULT_SETTINGS, 1)).rejects.toThrow('位置或证据状态');

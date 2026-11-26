@@ -4,12 +4,17 @@ import { locationOf } from './types';
 import { BACK, cleanTitle, digest, FRONT, headingAliases } from '../readers/shared';
 import { checkTextFormat } from './textFormat';
 import { checkFrontMatter } from './frontMatter';
+import { checkFootnoteBrackets } from './footnotes';
 import { checkCaptions, reviewStructure } from './structure';
 
 export async function loadRules(): Promise<RulePack> {
   const r = await fetch(publicAsset('rules/college.json')); if (!r.ok) throw new Error('学院规则读取失败。');
   const pack = await r.json() as RulePack;
   if (!Array.isArray(pack.rules) || new Set(pack.rules.map(x => x.id)).size !== pack.rules.length) throw new Error('学院规则结构或编号无效。');
+  if (pack.rules.some(rule => !rule.source?.quote || (rule.source.kind === 'document'
+    ? rule.source.pdf_page !== undefined : !Number.isInteger(rule.source.pdf_page) || rule.source.pdf_page! < 1))) {
+    throw new Error('检查依据缺失或页码无效。');
+  }
   const pdf = await fetch(publicAsset('rules/guide.pdf')); if (!pdf.ok || await digest(await pdf.arrayBuffer()) !== pack.source.sha256) throw new Error('规则依据PDF缺失或哈希不一致，停止检查。');
   return pack;
 }
@@ -43,6 +48,7 @@ export function auditDocument(doc: AuditDocument, stage: Stage, kind: MaterialKi
     const emit = (s: Status, text: string, evidence: CheckItem[] = []) => { status = s; summary = text; items = evidence; executed = true; };
     if (!rule.stages.includes(stage) || (rule.params.kinds && !rule.params.kinds.includes(kind))) return { rule, status: 'not_applicable', summary: '本阶段或材料类型不应用此规则。', items: [], executed: false };
     if (settings.disabledRules.includes(rule.id)) return { rule, status: 'manual', summary: '本项被当前配置关闭，未执行检查；不能视为符合。', items: [], executed: false };
+    if (rule.mode === 'footnote_brackets') return { rule, ...checkFootnoteBrackets(doc) };
     if (['abstract_length', 'keywords', 'classification'].includes(rule.mode)) return { rule, ...checkFrontMatter(doc, rule) };
     if (['caption_position', 'caption_number'].includes(rule.mode)) return { rule, ...checkCaptions(doc, rule, structure) };
     if (rule.mode === 'page_size') {

@@ -264,20 +264,24 @@ export function DocumentViewer({ buffer, report, selected, focusLocation, onSele
 
   function changeZoom(step: number) {
     fitAutomatically.current = false;
-    setZoom(z => Math.max(.4, Math.min(1.5, Math.round((z + step) * 10) / 10)));
+    setZoom(z => Math.max(.4, Math.min(2, Math.round((z + step) * 10) / 10)));
+  }
+  function resetZoom() {
+    fitAutomatically.current = false;
+    setZoom(1);
   }
   const previewHint = isPdf ? '页码按文件实际顺序计算，含封面。' : '预览字体和分页可能与 Word/WPS 有差异。位置使用源段号。';
   return <div className="viewer-shell">
     <div className="viewer-toolbar">
-      <div title={previewHint}><FileText size={15}/><span>{isPdf ? 'PDF 原页' : 'Word 预览'}</span></div>
+      <div title={previewHint} className="viewer-title-group"><FileText size={14}/><span>{isPdf ? 'PDF 原页' : 'Word 预览'}</span><span className="viewer-local-pill">本机解析 · 未上传</span></div>
       <div className="viewer-controls">{isPdf && <>
         <button aria-label="上一页" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16}/></button>
         <span>{page} / {report.document.pageCount}</span>
         <button aria-label="下一页" disabled={page >= (report.document.pageCount || 1)} onClick={() => setPage(p => p + 1)}><ChevronRight size={16}/></button><i/>
       </>}
         <button aria-label="缩小" disabled={zoom <= .4} onClick={() => changeZoom(-.1)}><Minus size={15}/></button>
-        <span>{Math.round(zoom * 100)}%</span>
-        <button aria-label="放大" disabled={zoom >= 1.5} onClick={() => changeZoom(.1)}><Plus size={15}/></button>
+        <button type="button" className="zoom-reset" title="重置为 100%" onClick={resetZoom}>{Math.round(zoom * 100)}%</button>
+        <button aria-label="放大" disabled={zoom >= 2} onClick={() => changeZoom(.1)}><Plus size={15}/></button>
         <button className="fit-width" onClick={() => { fitAutomatically.current = true; fitWidth(); }}>适应宽度</button>
       </div>
     </div>

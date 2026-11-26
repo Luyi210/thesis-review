@@ -50,8 +50,10 @@ export function useMarginLeader(layout: RefObject<HTMLElement | null>, selection
         line.removeAttribute('d');
         return;
       }
-      const mid = startX + (endX - startX) * .55;
-      line.setAttribute('d', ['M', startX, startY, 'H', mid - 5, 'L', mid + 5, endY, 'H', endX].join(' '));
+      const span = endX - startX;
+      const c1x = startX + span * 0.45;
+      const c2x = endX - span * 0.45;
+      line.setAttribute('d', `M ${startX} ${startY} C ${c1x} ${startY}, ${c2x} ${endY}, ${endX} ${endY}`);
     };
     const request = () => { if (!frame) frame = requestAnimationFrame(measure); };
     schedule.current = request;

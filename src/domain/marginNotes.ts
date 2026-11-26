@@ -119,6 +119,11 @@ export function marginAdvice(finding: MarginFinding, report: Report): string | u
     return '先核实这行是否属于正文，再到 Word 或 WPS 原稿查看字号。';
   }
   switch (mode) {
+    case 'footnote_brackets': {
+      if (!item?.expected) return;
+      const side = item.expected.startsWith(item.observed) ? '右' : '左';
+      return `在原稿中给这个编号补上${side}方括号，写成 ${item.expected}。`;
+    }
     case 'body_font': return `选中${selection}，在字体设置中选择宋体。`;
     case 'body_size': return `选中${selection}，将字号设为${setSizeLabel(item?.expected || `${check.rule.params.expected_pt} 磅`)}。`;
     case 'body_line': return `打开原稿的段落设置，将这段的行距调整为 ${check.rule.params.expected_pt} 磅。`;
