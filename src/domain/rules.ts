@@ -59,6 +59,7 @@ export function auditDocument(doc: AuditDocument, stage: Stage, kind: MaterialKi
       if (doc.format === 'pdf' && rule.mode !== 'body_size') { summary = '浏览器PDF读取尚不能可靠还原此项Word字体/段落设置，保留人工核对。'; }
       else {
         const bad: CheckItem[] = []; const unknown: CheckItem[] = []; let examined = 0;
+        let possibleHeadings = 0;
         for (const p of body) {
           if (rule.mode === 'body_line') {
             examined++;
@@ -68,16 +69,22 @@ export function auditDocument(doc: AuditDocument, stage: Stage, kind: MaterialKi
             const inspected = checkTextFormat(p, rule, doc.format);
             examined += inspected.examined;
             for (const finding of inspected.findings) {
-              (finding.status === 'manual' ? unknown : bad).push(finding);
+              if (doc.format === 'pdf' && p.pdfHeadingCandidate && finding.status === 'fail') {
+                possibleHeadings++;
+                unknown.push({ ...finding, status: 'manual', reason: '这一行疑似章节小标题。确认属于正文后，再对照本条的正文字号要求。' });
+              } else {
+                (finding.status === 'manual' ? unknown : bad).push(finding);
+              }
             }
           }
         }
         if (doc.format === 'pdf') {
           const counts = { running: 0, footnote: 0, caption: 0, table: 0 };
           for (const p of doc.paragraphs) if (p.pdfRegion) counts[p.pdfRegion]++;
-          const measured = `已核对候选正文中的 ${examined} 个中文文字片段，${bad.length} 行有字号偏差线索，${unknown.length} 行字号待核实。`;
+          const measured = `已核对候选正文中的 ${examined} 个中文文字片段，${bad.length} 行有字号偏差线索，${unknown.length - possibleHeadings} 行字号待核实。`;
+          const headings = possibleHeadings ? `另有 ${possibleHeadings} 行疑似章节小标题，需先确认其段落角色。` : '';
           const scope = `全文识别到页眉页脚 ${counts.running} 行、脚注 ${counts.footnote} 行、图表题注 ${counts.caption} 行、表内文字 ${counts.table} 行，这些区域不参与正文字号判断。复杂版面仍需结合原页核实。`;
-          emit(bad.length ? 'warning' : 'manual', measured + scope,
+          emit(bad.length ? 'warning' : 'manual', measured + headings + scope,
             [...bad.map((item): CheckItem => ({ ...item, status: 'warning' })), ...unknown]);
         } else {
           emit(bad.length ? 'fail' : unknown.length || !examined ? 'manual' : 'pass', `核对${examined}个${rule.mode === 'body_line' ? '候选正文段落' : '候选正文中文片段'}：${bad.length}处偏差，${unknown.length}处未确定。`, [...bad, ...unknown]);
@@ -106,5 +113,5 @@ export function auditDocument(doc: AuditDocument, stage: Stage, kind: MaterialKi
     if (kind === 'report' && (status as Status) === 'fail' && (rule.mode.startsWith('body_') || rule.mode === 'page_size')) { status = 'warning'; summary += ' 阶段报告格式适用性待学院确认，本次仅提醒。'; items = items.map(i => i.status === 'fail' ? { ...i, status: 'warning' } : i); }
     return { rule, status, summary, items, executed };
   });
-  return { id: crypto.randomUUID(), engine: 'browser-audit-0.8.0', stage, kind, createdAt: new Date().toISOString(), document: doc, ruleVersion: pack.version, checks, elapsedMs: performance.now() - started, steps: [], structure };
+  return { id: crypto.randomUUID(), engine: 'browser-audit-0.8.1', stage, kind, createdAt: new Date().toISOString(), document: doc, ruleVersion: pack.version, checks, elapsedMs: performance.now() - started, steps: [], structure };
 }

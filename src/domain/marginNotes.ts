@@ -108,6 +108,7 @@ export function marginAdvice(finding: MarginFinding, report: Report): string | u
     if (mode === 'heading') return '在原稿中找到相应栏目，核对标题和栏目内容。';
     if (mode.startsWith('caption_')) return '对照原稿中的图表和题注，确认题注归属及所在位置。';
     if (item?.formatSpan) return '在 Word 或 WPS 中选中批注所引片段中的中文文字，核对其字体设置。';
+    if (report.document.format === 'pdf' && mode === 'body_size') return '在 Word 或 WPS 原稿中核对这行的字号。';
     if (mode.startsWith('body_')) return '在 Word 或 WPS 中选中对应正文，打开字体或段落设置核对。';
     if (mode === 'keywords' || mode === 'abstract_length' || mode === 'classification') return '打开原稿的摘要部分，对照本条指南核实。';
     return;

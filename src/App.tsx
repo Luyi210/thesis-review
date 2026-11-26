@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { registerSW } from 'virtual:pwa-register';
-import { AlertCircle, BookOpen, CircleHelp, Download, FileText, Info, LoaderCircle, MoreHorizontal, RefreshCw, Settings as SettingsIcon, Upload, X } from 'lucide-react';
+import { AlertCircle, BookOpen, CircleHelp, Download, FileText, History, Info, LoaderCircle, MoreHorizontal, RefreshCw, Settings as SettingsIcon, Upload, X } from 'lucide-react';
 import { Configuration } from './components/Configuration';
 import { GettingStarted } from './components/GettingStarted';
 import { marginInitialSelection } from './domain/marginNotes';
@@ -13,6 +13,7 @@ import { useMarginLeader } from './components/useMarginLeader';
 import { DocumentViewer } from './components/DocumentViewer';
 import { CoveragePanel } from './components/CoveragePanel';
 import { VersionsPanel } from './components/VersionsPanel';
+import { ReleaseNotes } from './components/ReleaseNotes';
 import { captureVersion, compareVersions, retainVersions, versionProvenance, type VersionSnapshot } from './domain/versions';
 import type { Location } from './domain/types';
 import { loadSkill, MODELS, readSettings } from './domain/config';
@@ -24,7 +25,7 @@ import { collegeModel } from './model/college';
 import { downloadJson, publicAsset } from './utils';
 
 const UTILITY_TITLES = { records: '完整检查记录', coverage: '图表与公式', versions: '版本对比', feedback: '教师反馈' } as const;
-type Panel = 'notes' | keyof typeof UTILITY_TITLES;
+type Panel = 'notes' | 'updates' | keyof typeof UTILITY_TITLES;
 const GUIDE_SEEN_KEY = 'thesis-guide-seen-v1';
 
 const SAMPLES = [
@@ -199,6 +200,10 @@ export default function App() {
     setPanel(value);
     if (value !== 'notes') requestAnimationFrame(() => drawerClose.current?.focus());
   }
+  function closeUtilityPanel() {
+    showPanel('notes');
+    if (panel === 'updates') toolsButton.current?.focus({ preventScroll: true });
+  }
   function dismissGuide() {
     setGuideOpen(false);
     try { localStorage.setItem(GUIDE_SEEN_KEY, '1'); } catch { /* The dialog can still be dismissed. */ }
@@ -345,6 +350,7 @@ export default function App() {
   const scopeGroups = buildScopeGroups(pack, stage, kind, settings.disabledRules);
   const scopeCount = scopeGroups.reduce((total, group) => total + group.total, 0);
   const showSideTabs = Boolean(data || versions.length);
+  const panelTitle = panel === 'notes' ? '页边批注' : panel === 'updates' ? '更新记录' : UTILITY_TITLES[panel];
 
   return <TeacherFeedbackProvider><div className="app-shell margin-app">
     <header className="review-masthead">
@@ -409,6 +415,9 @@ export default function App() {
               setGuideOpen(true);
             }}>
               <CircleHelp size={14}/><span>使用说明</span>
+            </button>
+            <button type="button" onClick={() => showPanel('updates')}>
+              <History size={14} aria-hidden="true"/><span>更新记录</span>
             </button>
             <button type="button" disabled={locked} onClick={() => { toolsButton.current?.focus(); setToolsOpen(false); setConfigOpen(true); }}>
               <SettingsIcon size={14}/><span>引擎与规则设置</span>
@@ -504,7 +513,7 @@ export default function App() {
           }}
         />
 
-        <aside className="findings-panel margin-panel" aria-label={panel === 'notes' ? '页边批注' : UTILITY_TITLES[panel]}>
+        <aside className="findings-panel margin-panel" aria-label={panelTitle}>
           {showSideTabs && <nav className="side-tabs" aria-label="审阅视图切换">
             <button type="button" className={panel === 'notes' ? 'active' : ''} onClick={() => showPanel('notes')}>批注</button>
             <button type="button" className={panel === 'records' ? 'active' : ''} disabled={!data} onClick={() => showPanel('records')}>
@@ -522,16 +531,17 @@ export default function App() {
           {panel === 'notes' ? (
             <MarginNotes report={data?.report ?? null} selected={selected} onSelect={select} controls={explanationControls}/>
           ) : (
-            <section className="utility-drawer" onKeyDown={e => { if (e.key === 'Escape') showPanel('notes'); }}>
+            <section className="utility-drawer" onKeyDown={e => { if (e.key === 'Escape') closeUtilityPanel(); }}>
               <header className="utility-heading">
-                <h2>{UTILITY_TITLES[panel]}</h2>
-                <button type="button" ref={drawerClose} aria-label="返回页边批注" title="返回页边批注" onClick={() => showPanel('notes')}><X size={16}/></button>
+                <h2>{panelTitle}</h2>
+                <button type="button" ref={drawerClose} aria-label="返回页边批注" title="返回页边批注" onClick={closeUtilityPanel}><X size={16}/></button>
               </header>
               <div className="side-scroll">
                 {panel === 'versions' && <VersionsPanel versions={versions} current={currentVersion} baseline={baseline} onBaseline={setBaselineId} onView={viewVersion} locked={locked} onSelect={select}/>}
                 {panel === 'coverage' && data && <CoveragePanel report={data.report} onLocate={setFocusLocation}/>}
                 {panel === 'feedback' && <FeedbackPanel key={data?.report.id || 'history'} report={data?.report ?? null} onSelect={select}/>}
                 {panel === 'records' && data && <FullReport report={data.report} onSelect={select}/>}
+                {panel === 'updates' && <ReleaseNotes/>}
               </div>
             </section>
           )}

@@ -6,6 +6,7 @@ import type { AuditDocument, Limitation, Paragraph, RulePack } from '../domain/t
 import { footnoteMarker } from '../domain/footnotes';
 import { cleanTitle, digest, headingInfo, headingNames, paragraph } from './shared';
 import { markPageZones, markRunningMargins, type PageBoundary } from './pdfBodyZones';
+import { markPossiblePdfHeadings } from './pdfHeadingModel';
 import { pageMarks } from './pdfGraphics';
 
 GlobalWorkerOptions.workerSrc = workerUrl;
@@ -88,6 +89,7 @@ export async function readPdf(buffer: ArrayBuffer, name: string, pack: RulePack,
       page.cleanup();
     }
     markRunningMargins(pages);
+    pages.forEach(markPossiblePdfHeadings);
     return { name, format: 'pdf', sha256: await digest(buffer), bytes: buffer.byteLength, paragraphs, sections, objects: [], limitations: [...new Map(limitations.map(x => [`${x.code}:${x.page || 0}`, x])).values()], pageCount: pdf.numPages };
   } finally { await pdf.destroy(); }
 }

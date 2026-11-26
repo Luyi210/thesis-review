@@ -12,6 +12,7 @@ export interface Paragraph {
   previewText?: string;
   pdfMarkerBox?: number[]; // Bounds of a leading footnote number when PDF text items isolate it exactly.
   pdfRegion?: 'running' | 'footnote' | 'caption' | 'table';
+  pdfHeadingCandidate?: true;
 }
 export interface Limitation { code: string; message: string; affectsPresence: boolean; page?: number }
 export interface ObjectEvidence {

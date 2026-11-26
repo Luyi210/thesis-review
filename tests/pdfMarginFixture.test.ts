@@ -79,3 +79,29 @@ it('keeps a single-number vector figure caption out of body sizing while retaini
   expect(review.checks.find(check => check.rule.id === 'FMT-SIZE')?.items.map(item => item.location.page))
     .toEqual([2, 3]);
 });
+
+it('keeps the PDF anchor and moves only an ambiguous numbered heading to manual review', async () => {
+  const fixture = await readFile('tests/fixtures/role-heading.pdf');
+  const parsed = await readPdf(Uint8Array.from(fixture).buffer, 'role-heading.pdf', pack);
+  const baseline = {
+    ...parsed,
+    paragraphs: parsed.paragraphs.map(p => ({ ...p, pdfHeadingCandidate: undefined })),
+  };
+  const before = auditDocument(baseline, 'proposal', 'report', pack, DEFAULT_SETTINGS)
+    .checks.find(check => check.rule.id === 'FMT-SIZE')!;
+  const revised = auditDocument(parsed, 'proposal', 'report', pack, DEFAULT_SETTINGS);
+  const after = revised.checks.find(check => check.rule.id === 'FMT-SIZE')!;
+  const heading = parsed.paragraphs.find(line => line.text === '（一）研究对象')!;
+  const changed = after.items.findIndex(item => item.location.paragraph === heading.index);
+
+  expect(before.items.map(item => item.status)).toEqual(['warning', 'warning', 'warning', 'warning']);
+  expect(after.items.filter(item => item.status === 'warning')).toEqual(before.items.slice(1));
+  expect(after.items[changed]).toMatchObject({
+    ...before.items[0], status: 'manual', reason: expect.stringContaining('疑似章节小标题'),
+  });
+  const html = renderToStaticMarkup(createElement(MarginNotes, {
+    report: revised, selected: { id: 'FMT-SIZE', item: changed }, onSelect: () => {},
+  }));
+  expect(html).toContain('14 磅');
+  expect(html).toContain('疑似章节小标题');
+});

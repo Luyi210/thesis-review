@@ -1,0 +1,72 @@
+.release-timeline {
+  margin: 2px 0 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.release-entry {
+  position: relative;
+  padding: 0 0 22px 15px;
+  border-inline-start: 1px solid var(--line-strong);
+}
+
+.release-entry::before {
+  position: absolute;
+  inset-block-start: 5px;
+  inset-inline-start: -4px;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  content: '';
+}
+
+.release-entry:first-child::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.release-entry:last-child {
+  padding-block-end: 0;
+  border-inline-start-color: transparent;
+}
+
+.release-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 9px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.release-version {
+  color: var(--ink-secondary);
+  font-weight: 600;
+}
+
+.release-entry:first-child .release-version {
+  color: var(--accent);
+}
+
+.release-entry h3 {
+  margin: 3px 0 6px;
+  color: var(--ink);
+  font: 600 17px/1.4 var(--serif);
+}
+
+.release-changes {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-inline-start: 1em;
+  color: var(--ink-secondary);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.release-changes li::marker {
+  color: var(--warn);
+}
