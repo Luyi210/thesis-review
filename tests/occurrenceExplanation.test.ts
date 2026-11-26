@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { OccurrenceExplanation, type ExplanationControls } from '../src/components/OccurrenceExplanation';
 import type { Check, Report, Skill } from '../src/domain/types';
 import { DEFAULT_SETTINGS } from '../src/domain/config';
+import { COLLEGE_MODEL_ID } from '../src/model/college';
 import { buildMessages, explanationKey, explanationSchema, explanationTarget } from '../src/model/contracts';
 import { BrowserModel } from '../src/model/runtime';
 
@@ -30,12 +31,12 @@ function output(index: number, changes = {}) {
   return JSON.stringify({ explanations: [{ issue_id: check.rule.id, evidence_id: target.key, evidence_status: target.status,
     explanation: '此处应对照原稿核实。', steps: ['在 Word 的字体设置中核对。'], ...changes }] });
 }
-function setup(raw: string, tokenize: () => Promise<number[]> = async () => []) {
+function setup(raw: string, tokenize: () => Promise<number[]> = async () => [], modelId = DEFAULT_SETTINGS.modelId) {
   const runtime = new BrowserModel();
   Object.assign(runtime, { loadedContext: DEFAULT_SETTINGS.contextWindow, engine: { tokenize,
     chat: { completions: { create: vi.fn(async () => ({ choices: [{ finish_reason: 'stop', message: { content: raw } }] })) } },
   } });
-  runtime.state = { modelId: DEFAULT_SETTINGS.modelId, phase: 'ready', progress: 1, text: '' };
+  runtime.state = { modelId, phase: 'ready', progress: 1, text: '' };
   return runtime;
 }
 describe('evidence for an individual annotation', () => {
@@ -85,6 +86,17 @@ describe('evidence for an individual annotation', () => {
   it('rejects a different occurrence’s measured point size or a made-up guide page', async () => {
     await expect(setup(output(1, { explanation: '这里检测到 10.5 磅。' })).explain(report, check, skill, DEFAULT_SETTINGS, 1)).rejects.toThrow('磅值');
     await expect(setup(output(1, { steps: ['见《撰写指南》第 9 页。'] })).explain(report, check, skill, DEFAULT_SETTINGS, 1)).rejects.toThrow('指南页码');
+  });
+  it('requires college font-size explanations to identify the measured attribute and its edit', async () => {
+    const settings = { ...DEFAULT_SETTINGS, modelId: COLLEGE_MODEL_ID };
+    const [prompt] = buildMessages(report, check, skill, 0, COLLEGE_MODEL_ID);
+    expect(prompt.content).toContain('observed 和 expected 都表示字号');
+    const explain = (explanation: string, steps: string[]) =>
+      setup(output(0, { explanation, steps }), undefined, settings.modelId).explain(report, check, skill, settings, 0);
+    const fontsize = '所选文字的字号是 10.5 磅，要求字号为 12 磅。';
+    await expect(explain('该段的值 10.5 与要求的 12 磅不一致。', ['选中片段并设置字号。'])).rejects.toThrow('调整的是字号');
+    await expect(explain(fontsize, ['将该段的数值从 10.5 改为 12 磅。'])).rejects.toThrow('调整的是字号');
+    await expect(explain(fontsize, ['选中对应文字，把字号设为 12 磅。'])).resolves.toMatchObject({ modelId: COLLEGE_MODEL_ID });
   });
   it('locks during tokenization and lets cancellation immediately release the pending explanation', async () => {
     const runtime = setup('', () => new Promise(() => {}));

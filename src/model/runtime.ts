@@ -86,7 +86,7 @@ export class BrowserModel {
     const engine = this.engine; const epoch = this.epoch; const start = performance.now();
     if (report.checks && !report.checks.includes(check)) throw new Error('该检查项不属于当前稿件。');
     const target = explanationTarget(report, check, itemIndex);
-    const messages = buildMessages(report, check, skill, itemIndex);
+    const messages = buildMessages(report, check, skill, itemIndex, settings.modelId);
     let timer: ReturnType<typeof setTimeout> | undefined;
     const deadline = new Promise<never>((_, reject) => {
       this.rejectPending = reject;
@@ -110,7 +110,7 @@ export class BrowserModel {
       const raw = response.choices[0]?.message.content || '';
       const explanations = validateExplanations(normalizeWebLLMOutput(raw), new Set([check.rule.id]), target);
       validateEvidenceTone(explanations, target.status);
-      validateTargetReferences(explanations, check, target);
+      validateTargetReferences(explanations, check, target, settings.modelId);
       return { explanations, targetKey: target.key, ruleId: target.ruleId, itemIndex, status: target.status,
         sourcePage: target.sourcePage, location: target.item?.location, documentSha256: report.document.sha256,
         reportId: report.id, modelId: settings.modelId, skillVersion: skill.version,
