@@ -1,11 +1,12 @@
 import type { Check, CheckItem, Explanation, Report, Skill, Status } from '../domain/types';
+import { COLLEGE_MODEL_ID } from './college';
 
 export function explanationKey(reportId: string, ruleId: string, itemIndex: number): string {
   return [encodeURIComponent(reportId), encodeURIComponent(ruleId), itemIndex].join('/');
 }
 
-export function usesRuleAdviceOnly(check: Check) {
-  return check.rule.mode === 'footnote_brackets';
+export function usesRuleAdviceOnly(check: Check, modelId?: string) {
+  return check.rule.mode === 'footnote_brackets' || (modelId === COLLEGE_MODEL_ID && check.rule.mode === 'body_line');
 }
 
 export interface ExplanationTarget {

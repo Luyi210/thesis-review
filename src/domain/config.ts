@@ -1,16 +1,18 @@
 import { publicAsset } from '../utils';
 import type { Settings, Skill, Stage } from './types';
+import { BASE_MODEL_ID, COLLEGE_MODEL_ID, collegeModel } from '../model/college';
 
 export const MODELS = [
-  { id: 'Qwen3-1.7B-q4f16_1-MLC', name: 'Qwen3 · 1.7B', download: '约 984 MB', estimatedMemory: '约 2.0 GB', role: '默认试验模型' },
+  { id: BASE_MODEL_ID, name: 'Qwen3 · 1.7B', download: '约 984 MB', estimatedMemory: '约 2.0 GB', role: '默认试验模型' },
   { id: 'Qwen3-0.6B-q4f16_1-MLC', name: 'Qwen3 · 0.6B', download: '约 352 MB', estimatedMemory: '约 1.4 GB', role: '较小模型对照' },
   { id: 'Qwen3-4B-q4f16_1-MLC', name: 'Qwen3 · 4B', download: '约 2.28 GB', estimatedMemory: '约 3.4 GB', role: '较大模型对照' },
+  ...(collegeModel ? [collegeModel] : []),
 ] as const;
 export const DEFAULT_SETTINGS: Settings = { modelId: MODELS[0].id, contextWindow: 4096, maxTokens: 400, temperature: .1, autoLoadCached: true, disabledRules: [] };
 export function validateSettings(value: unknown): Settings {
   if (!value || typeof value !== 'object') throw new Error('配置必须是 JSON 对象。');
   const s = value as Record<string, unknown>;
-  if (!MODELS.some(m => m.id === s.modelId)) throw new Error('模型不在已核验的 WebLLM 预置清单中。');
+  if (!MODELS.some(m => m.id === s.modelId)) throw new Error('该模型不在当前版本的可用清单中。');
   if (![2048, 4096].includes(Number(s.contextWindow))) throw new Error('上下文长度只支持 2048 或 4096。');
   if (!Number.isInteger(s.maxTokens) || Number(s.maxTokens) < 128 || Number(s.maxTokens) > 800) throw new Error('输出长度需为 128–800 的整数。');
   if (typeof s.temperature !== 'number' || !Number.isFinite(s.temperature) || s.temperature < 0 || s.temperature > .5) throw new Error('温度需为 0–0.5。');
@@ -19,7 +21,13 @@ export function validateSettings(value: unknown): Settings {
   return { modelId: String(s.modelId), contextWindow: Number(s.contextWindow) as Settings['contextWindow'], maxTokens: Number(s.maxTokens), temperature: s.temperature, autoLoadCached: s.autoLoadCached, disabledRules: [...s.disabledRules] as string[] };
 }
 export function readSettings(): Settings {
-  try { const saved = localStorage.getItem('thesis-settings-v1'); return saved ? validateSettings(JSON.parse(saved)) : { ...DEFAULT_SETTINGS, disabledRules: [] }; }
+  try {
+    const saved = localStorage.getItem('thesis-settings-v1');
+    if (!saved) return { ...DEFAULT_SETTINGS, disabledRules: [] };
+    const value = JSON.parse(saved);
+    if (value?.modelId === COLLEGE_MODEL_ID && !collegeModel) value.modelId = DEFAULT_SETTINGS.modelId;
+    return validateSettings(value);
+  }
   catch { return { ...DEFAULT_SETTINGS, disabledRules: [] }; }
 }
 export const RECOGNITION_ADAPTERS = [

@@ -7,4 +7,5 @@ dist/
 # Local configuration and generated PDF.js resources
 .env
 .env.*
+!.env.production
 public/pdf-assets/

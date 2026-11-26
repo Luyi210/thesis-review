@@ -20,6 +20,7 @@ import { loadRules } from './domain/rules';
 import { STAGES, type Check as AuditCheck, type MaterialKind, type RulePack, type Settings, type Skill, type Stage } from './domain/types';
 import { runWorkflow, type WorkflowResult } from './domain/workflow';
 import { BrowserModel, probeWebGPU, type Capability, type ModelEvidence, type ModelState } from './model/runtime';
+import { collegeModel } from './model/college';
 import { downloadJson, publicAsset } from './utils';
 
 const UTILITY_TITLES = { records: '完整检查记录', coverage: '图表与公式', versions: '版本对比', feedback: '教师反馈' } as const;
@@ -91,6 +92,7 @@ export default function App() {
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const activeRequest = useRef<string | null>(null);
   const runtime = useRef(new BrowserModel());
+  const modelChosen = useRef(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const uploadAction = useRef<HTMLButtonElement>(null);
   const guideFromMenu = useRef(false);
@@ -124,7 +126,7 @@ export default function App() {
       if (c.webgpu) {
         const cached = await runtime.current.checkCache(settings.modelId).catch(() => false);
         if (dead) return;
-        if (cached && settings.autoLoadCached && runtime.current.state.phase === 'idle') {
+        if (cached && settings.autoLoadCached && !modelChosen.current && runtime.current.state.phase === 'idle') {
           void runtime.current.load(settings).catch(() => {});
         }
       }
@@ -257,16 +259,27 @@ export default function App() {
     clearReview();
   }
   function applySettings(next: Settings) {
-    if (next.modelId !== settings.modelId || next.contextWindow !== settings.contextWindow) { runtime.current.cancel(); }
+    if (next.modelId !== settings.modelId || next.contextWindow !== settings.contextWindow) {
+      modelChosen.current = true;
+      runtime.current.cancel();
+      clearExplanations();
+    }
     if (JSON.stringify(next.disabledRules) !== JSON.stringify(settings.disabledRules)) { clearReview(); }
     setSettings(next);
     try { localStorage.setItem('thesis-settings-v1', JSON.stringify(next)); setNotice('配置已保存；规则开关变化后请重新检查当前材料。'); }
     catch { setNotice('当前配置已应用，但浏览器未允许持久保存；关闭页面后需重新配置。'); }
   }
-  async function loadModel() {
+  async function loadModel(next: Settings) {
+    modelChosen.current = true;
     setNotice('');
-    try { await runtime.current.load(settings); }
+    try { await runtime.current.load(next); }
     catch { setNotice('本地模型未能加载，已有规则结果仍可查看。请在引擎配置中查看原因。'); }
+  }
+  function loadCollegeModel() {
+    if (!collegeModel || ['loading', 'generating'].includes(runtime.current.state.phase)) return;
+    const next = { ...settings, modelId: collegeModel.id };
+    applySettings(next);
+    void loadModel(next);
   }
   async function explain(check: AuditCheck, itemIndex: number) {
     if (!data || activeRequest.current !== null) return;
@@ -292,7 +305,10 @@ export default function App() {
   }
   const explanationControls: ExplanationControls = {
     phase: modelState.phase, pendingKey, errors: explanationErrors, results: explanations,
-    onExplain: explain, onLoadModel: capability?.webgpu ? loadModel : undefined,
+    modelId: settings.modelId,
+    onExplain: explain, onLoadModel: capability?.webgpu ? () => void loadModel(settings) : undefined,
+    collegeChoice: capability?.webgpu && collegeModel && settings.modelId !== collegeModel.id
+      ? { download: collegeModel.download, onLoad: loadCollegeModel } : undefined,
     modelDownload: MODELS.find(model => model.id === settings.modelId)?.download,
     modelProgress: modelState.progress,
     onConfigure: () => setConfigOpen(true), onCancel: () => runtime.current.cancel(),
@@ -527,7 +543,7 @@ export default function App() {
       </section>
     </main>
 
-    {configOpen && <Configuration settings={settings} onApply={applySettings} onClose={() => setConfigOpen(false)} pack={pack} skill={skill} stage={stage} kind={kind} capability={capability} modelState={modelState} offlineReady={offlineReady} onLoadModel={loadModel} onCancelModel={() => runtime.current.cancel()}/>}
+    {configOpen && <Configuration settings={settings} onApply={applySettings} onClose={() => setConfigOpen(false)} pack={pack} skill={skill} stage={stage} kind={kind} capability={capability} modelState={modelState} offlineReady={offlineReady} onLoadModel={() => void loadModel(settings)} onCancelModel={() => runtime.current.cancel()}/>}
     {guideOpen && <GettingStarted onClose={dismissGuide} onSample={() => void sample(0)} sampleDisabled={locked}/>}
   </div></TeacherFeedbackProvider>;
 }

@@ -1006,6 +1006,7 @@ a { color: var(--ink-secondary); text-underline-offset: 3px; }
   font-size: 12px;
 }
 .occurrence-explanation > button:hover { background: var(--surface-tinted); }
+.occurrence-explanation > button + button { margin-inline-start: 8px; }
 .explanation-text {
   margin-top: 8px;
   padding: 9px 10px;
