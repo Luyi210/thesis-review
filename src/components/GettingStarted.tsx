@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react';
-import { ArrowRight, FileUp, GitCompare, LocateFixed, X } from 'lucide-react';
+import { ArrowRight, Download, FileUp, GitCompare, LocateFixed, X } from 'lucide-react';
 import { collegeModel } from '../model/college';
+import { publicAsset } from '../utils';
 
 export function GettingStarted({ onClose, onSample, sampleDisabled }: {
   onClose: () => void;
@@ -21,6 +22,11 @@ export function GettingStarted({ onClose, onSample, sampleDisabled }: {
       <div>
         <h2 id="guide-title">论文审阅使用说明</h2>
         <p id="guide-summary">原稿和批注联动，逐处核对学院要求和修改建议。</p>
+        <a className="guide-word-download" href={publicAsset('manuals/thesis-workbench-guide-v0.8.3.docx')}
+          download="学院论文审阅工作台使用说明书_v0.8.3.docx">
+          <Download size={15} aria-hidden="true"/>
+          下载 Word 说明书
+        </a>
       </div>
       <button type="button" className="icon-button" aria-label="关闭使用说明" onClick={() => dialog.current?.close()}>
         <X size={18} aria-hidden="true"/>

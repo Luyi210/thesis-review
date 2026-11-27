@@ -1538,6 +1538,16 @@ a { color: var(--ink-secondary); text-underline-offset: 3px; }
   line-height: 1.65;
 }
 .getting-started > header p { margin-top: 5px; }
+.guide-word-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin-top: 4px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
 .guide-body {
   min-height: 0;
   padding: 0 var(--guide-inset) 18px;
@@ -1597,7 +1607,7 @@ a { color: var(--ink-secondary); text-underline-offset: 3px; }
   background: var(--surface-subtle);
 }
 .getting-started > footer p { margin-right: auto; font-size: 12px; color: var(--muted); }
-.getting-started button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.getting-started :is(button, a):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 @media (max-width: 460px) {
   .getting-started > header { padding-top: 15px; }

@@ -2,6 +2,14 @@ import './releaseNotes.css';
 
 const releases = [
   {
+    version: 'v0.8.4',
+    date: '2026-11-27',
+    title: 'Word 说明书下载',
+    changes: [
+      '从「更多工具 → 使用说明」可下载图文版 Word 说明书，查看原稿批注和版本对比的操作步骤。',
+    ],
+  },
+  {
     version: 'v0.8.3',
     date: '2026-11-27',
     title: '完整论文修订对比',
