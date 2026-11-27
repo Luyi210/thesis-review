@@ -11,7 +11,7 @@ export default defineConfig({
       icons: [{ src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }],
     },
     workbox: {
-      globPatterns: ['**/*.{js,mjs,css,html,svg,json,pdf,docx,wasm,bcmap,pfb,ttf}'],
+      globPatterns: ['**/*.{js,mjs,css,html,svg,jpg,json,pdf,docx,wasm,bcmap,pfb,ttf}'],
       maximumFileSizeToCacheInBytes: 30 * 1024 * 1024,
       cleanupOutdatedCaches: true,
       navigateFallbackDenylist: [/\/models\//],

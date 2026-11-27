@@ -2,6 +2,15 @@ import './releaseNotes.css';
 
 const releases = [
   {
+    version: 'v0.8.2',
+    date: '2026-11-27',
+    title: '完整论文演示',
+    changes: [
+      '首页可打开带封面、摘要、目录、图表和参考文献的合成论文。',
+      '演示稿按预答辩论文核对，可定位预设的字体、字号、固定行距、字距和题注问题。',
+    ],
+  },
+  {
     version: 'v0.8.1',
     date: '2026-11-26',
     title: 'PDF 小标题识别试用',

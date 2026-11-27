@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { registerSW } from 'virtual:pwa-register';
-import { AlertCircle, BookOpen, CircleHelp, Download, FileText, History, Info, LoaderCircle, MoreHorizontal, RefreshCw, Settings as SettingsIcon, Upload, X } from 'lucide-react';
+import { AlertCircle, ArrowRight, BookOpen, CircleHelp, Download, FileText, History, Info, LoaderCircle, MoreHorizontal, RefreshCw, Settings as SettingsIcon, Upload, X } from 'lucide-react';
 import { Configuration } from './components/Configuration';
 import { GettingStarted } from './components/GettingStarted';
 import { marginInitialSelection } from './domain/marginNotes';
@@ -27,6 +27,13 @@ import { downloadJson, publicAsset } from './utils';
 const UTILITY_TITLES = { records: '完整检查记录', coverage: '图表与公式', versions: '版本对比', feedback: '教师反馈' } as const;
 type Panel = 'notes' | 'updates' | keyof typeof UTILITY_TITLES;
 const GUIDE_SEEN_KEY = 'thesis-guide-seen-v1';
+
+const THESIS_DEMO = {
+  url: 'samples/thesis-review-demo.docx',
+  name: '合成演示_高校图书馆自习座位使用效率研究.docx',
+  cover: 'samples/thesis-review-demo-cover.jpg',
+  scope: { stage: 'predefense', kind: 'thesis' } as const,
+};
 
 const SAMPLES = [
   { url: 'samples/mixed-run-format.docx', name: '合成样稿_同段不同字号.docx', label: '同段字号样稿.docx', short: 'Word 同段不同字号' },
@@ -225,11 +232,11 @@ export default function App() {
     setFocusLocation(null);
     setPanel('notes');
   }
-  async function inspect(chosen: File) {
+  async function inspect(chosen: File, scope: { stage: Stage; kind: MaterialKind } = { stage, kind }) {
     if (busyRef.current || generating) return;
     busyRef.current = true; setBusy(true); setError(''); setNotice(''); clearReview(); setToolsOpen(false); setFile(chosen);
     try {
-      const result = await runWorkflow(chosen, stage, kind, settings, setProgress);
+      const result = await runWorkflow(chosen, scope.stage, scope.kind, settings, setProgress);
       const snapshot = await captureVersion(result, settings);
       const retained = retainVersions(versions, snapshot, baselineId);
       setVersions(retained.history);
@@ -239,19 +246,25 @@ export default function App() {
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
     finally { busyRef.current = false; setBusy(false); setProgress(''); }
   }
-  async function sample(index: number) {
+  async function openSample(target: { url: string; name: string }, scope?: { stage: Stage; kind: MaterialKind }) {
     const choice = ++pendingChoice.current;
     setToolsOpen(false);
     try {
-      const target = SAMPLES[index];
       const response = await fetch(publicAsset(target.url));
       if (!response.ok) throw new Error('示例稿读取失败。');
       const bytes = await response.arrayBuffer();
-      if (choice === pendingChoice.current) await inspect(new File([bytes], target.name));
+      if (choice !== pendingChoice.current || busyRef.current || activeRequest.current !== null) return;
+      if (scope) {
+        setStage(scope.stage);
+        setKind(scope.kind);
+      }
+      await inspect(new File([bytes], target.name), scope);
     } catch (e) {
       if (choice === pendingChoice.current) setError((e as Error).message);
     }
   }
+  function sample(index: number) { return openSample(SAMPLES[index]); }
+  function openThesisDemo() { return openSample(THESIS_DEMO, THESIS_DEMO.scope); }
   function changeStage(value: Stage) {
     if (value === stage) return;
     setStage(value);
@@ -399,6 +412,9 @@ export default function App() {
             </button>}
             <hr/>
             <div className="menu-section-label">打开合成示例稿</div>
+            <button type="button" disabled={locked} onClick={() => void openThesisDemo()}>
+              <FileText size={13} aria-hidden="true"/><span>完整论文演示</span>
+            </button>
             {SAMPLES.map((s, i) => (
               <button key={s.url} type="button" disabled={locked} onClick={() => void sample(i)}>
                 <FileText size={13}/><span>{s.short}</span>
@@ -465,7 +481,15 @@ export default function App() {
                     {busy ? <LoaderCircle className="spin" size={15}/> : <Upload size={15}/>}
                     <span>{busy ? '检查中' : file ? '重新检查' : '选择文件'}</span>
                   </button>
-                  {!busy && <button type="button" className="sample-link" onClick={() => void sample(0)}>打开示例稿</button>}
+                  {!busy && <button type="button" className="thesis-demo-entry" disabled={locked} onClick={() => void openThesisDemo()}>
+                    <img src={publicAsset(THESIS_DEMO.cover)} alt="" width="55" height="74"/>
+                    <span className="thesis-demo-copy">
+                      <strong>打开完整演示稿</strong>
+                      <span>高校图书馆自习座位使用效率研究</span>
+                      <small>合成硕士论文 · 按预答辩论文检查版式与题注</small>
+                    </span>
+                    <ArrowRight size={17} aria-hidden="true"/>
+                  </button>}
                 </div>
 
                 {!busy && <div className="scope-preview">
@@ -554,6 +578,6 @@ export default function App() {
     </main>
 
     {configOpen && <Configuration settings={settings} onApply={applySettings} onClose={() => setConfigOpen(false)} pack={pack} skill={skill} stage={stage} kind={kind} capability={capability} modelState={modelState} offlineReady={offlineReady} onLoadModel={() => void loadModel(settings)} onCancelModel={() => runtime.current.cancel()}/>}
-    {guideOpen && <GettingStarted onClose={dismissGuide} onSample={() => void sample(0)} sampleDisabled={locked}/>}
+    {guideOpen && <GettingStarted onClose={dismissGuide} onSample={() => void openThesisDemo()} sampleDisabled={locked}/>}
   </div></TeacherFeedbackProvider>;
 }

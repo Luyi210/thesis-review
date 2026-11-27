@@ -581,15 +581,38 @@ a { color: var(--ink-secondary); text-underline-offset: 3px; }
   font-size: 13.5px;
   max-width: 420px;
 }
-.sample-link {
-  margin-top: 12px;
-  color: var(--ink-secondary);
-  font-size: 12.5px;
-  text-decoration: underline;
-  text-decoration-color: var(--line-strong);
-  text-underline-offset: 3px;
+.thesis-demo-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: min(440px, 100%);
+  margin-top: 20px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  color: var(--ink);
+  text-align: left;
+  transition: background .14s, border-color .14s;
 }
-.sample-link:hover { color: var(--accent); text-decoration-color: currentColor; }
+.thesis-demo-entry:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  background: var(--surface-tinted);
+}
+.thesis-demo-entry img {
+  display: block;
+  width: 55px;
+  height: 74px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  object-fit: contain;
+}
+.thesis-demo-entry > svg { color: var(--accent); }
+.thesis-demo-copy { display: grid; gap: 3px; }
+.thesis-demo-copy strong { font-size: 14px; font-weight: 600; }
+.thesis-demo-copy span { color: var(--ink-secondary); font-size: 12.5px; }
+.thesis-demo-copy small { color: var(--muted); font-size: 12px; }
 
 .scope-preview {
   margin-top: 12px;

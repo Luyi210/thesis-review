@@ -68,7 +68,7 @@ export function GettingStarted({ onClose, onSample, sampleDisabled }: {
       <button type="button" className="secondary" disabled={sampleDisabled} onClick={() => {
         dialog.current?.close();
         onSample();
-      }}>打开示例稿</button>
+      }}>打开完整演示稿</button>
       <button type="button" className="primary" ref={start} onClick={() => dialog.current?.close()}>开始使用</button>
     </footer>
   </dialog>;
