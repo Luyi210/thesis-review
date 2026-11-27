@@ -22,8 +22,8 @@ export function GettingStarted({ onClose, onSample, sampleDisabled }: {
       <div>
         <h2 id="guide-title">论文审阅使用说明</h2>
         <p id="guide-summary">在本机浏览器对照学院指南，逐处核对原稿格式。</p>
-        <a className="guide-word-download" href={publicAsset('manuals/thesis-workbench-guide-v0.8.3.docx')}
-          download="学院论文审阅工作台使用说明书_v0.8.3.docx">
+        <a className="guide-word-download" href={publicAsset('manuals/thesis-workbench-guide-v0.8.5.docx')}
+          download="学院论文审阅工作台使用说明书_v0.8.5.docx">
           <Download size={15} aria-hidden="true"/>
           下载 Word 说明书
         </a>
