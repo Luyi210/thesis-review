@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { registerSW } from 'virtual:pwa-register';
-import { AlertCircle, ArrowRight, BookOpen, CircleHelp, Download, FileText, GitCompare, History, Info, LoaderCircle, MoreHorizontal, RefreshCw, Settings as SettingsIcon, Upload, X } from 'lucide-react';
+import { AlertCircle, ArrowRight, BookOpen, CircleHelp, Download, FileText, GitCompare, History, Info, Keyboard, LoaderCircle, MoreHorizontal, Printer, RefreshCw, Settings as SettingsIcon, Upload, X } from 'lucide-react';
 import { Configuration } from './components/Configuration';
 import { GettingStarted } from './components/GettingStarted';
-import { marginInitialSelection } from './domain/marginNotes';
+import { ShortcutsDialog } from './components/ShortcutsDialog';
+import { PrintSummaryDialog } from './components/PrintSummaryDialog';
+import { buildMarginPositions, inspectMarginSelection, marginInitialSelection } from './domain/marginNotes';
 import { FullReport } from './components/FullReport';
 import { MarginNotes } from './components/MarginNotes';
 import { explanationKey } from './model/contracts';
@@ -22,11 +24,14 @@ import { STAGES, type Check as AuditCheck, type MaterialKind, type RulePack, typ
 import { runWorkflow, type WorkflowResult } from './domain/workflow';
 import { BrowserModel, probeWebGPU, type Capability, type ModelEvidence, type ModelState } from './model/runtime';
 import { collegeModel } from './model/college';
-import { downloadJson, publicAsset } from './utils';
+import { downloadJson, isEditingControl, publicAsset } from './utils';
 
 const UTILITY_TITLES = { records: '完整检查记录', coverage: '图表与公式', versions: '版本对比', feedback: '教师反馈' } as const;
 type Panel = 'notes' | 'updates' | keyof typeof UTILITY_TITLES;
 const GUIDE_SEEN_KEY = 'thesis-guide-seen-v1';
+const KEYBOARD_PANELS: Partial<Record<string, Panel>> = {
+  '1': 'notes', '2': 'records', '3': 'coverage', '4': 'versions', '5': 'feedback',
+};
 
 const THESIS_DEMO_ORIGINAL = {
   url: 'samples/thesis-review-demo.docx',
@@ -93,6 +98,8 @@ export default function App() {
     try { return localStorage.getItem(GUIDE_SEEN_KEY) !== '1'; }
     catch { return true; }
   });
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [printOpen, setPrintOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const busyRef = useRef(false);
@@ -119,8 +126,8 @@ export default function App() {
   const [sideWidth, setSideWidth] = useState<number>(() => {
     try {
       const saved = Number(localStorage.getItem('thesis-side-width'));
-      return saved >= 290 && saved <= 620 ? saved : 388;
-    } catch { return 388; }
+      return saved >= 310 && saved <= 620 ? saved : 416;
+    } catch { return 416; }
   });
   const [resizing, setResizing] = useState(false);
   const pendingChoice = useRef(0);
@@ -132,6 +139,7 @@ export default function App() {
   const leader = useMarginLeader(layout, selectionKey);
   const generating = modelState.phase === 'generating';
   const locked = busy || generating || pendingKey !== null;
+  const modalOpen = configOpen || guideOpen || shortcutsOpen || printOpen;
 
   useEffect(() => runtime.current.subscribe(setModelState), []);
   useEffect(() => {
@@ -170,7 +178,10 @@ export default function App() {
       if (e.target instanceof Node && !toolsRoot.current?.contains(e.target)) setToolsOpen(false);
     };
     const escape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setToolsOpen(false); toolsButton.current?.focus(); }
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      e.preventDefault();
+      setToolsOpen(false);
+      toolsButton.current?.focus();
     };
     document.addEventListener('pointerdown', closeOutside);
     document.addEventListener('keydown', escape);
@@ -187,8 +198,8 @@ export default function App() {
     setResizing(true);
     const rect = container.getBoundingClientRect();
     const move = (ev: PointerEvent) => {
-      const maxW = Math.min(620, Math.max(320, Math.floor(rect.width * 0.56)));
-      const next = Math.round(Math.max(290, Math.min(maxW, rect.right - ev.clientX)));
+      const maxW = Math.min(620, Math.max(340, Math.floor(rect.width * 0.56)));
+      const next = Math.round(Math.max(310, Math.min(maxW, rect.right - ev.clientX)));
       setSideWidth(next);
     };
     const up = () => {
@@ -204,11 +215,83 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem('thesis-side-width', String(sideWidth)); } catch { /* ignore */ }
   }, [sideWidth]);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(''), 4500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  const positions = useMemo(() => data ? buildMarginPositions(data.report) : [], [data]);
+  const currentPosition = useMemo(
+    () => data ? inspectMarginSelection(data.report, positions, selected) : undefined,
+    [data, positions, selected],
+  );
+
+  function printReport() {
+    if (data && !locked) setPrintOpen(true);
+  }
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.isComposing || modalOpen || isEditingControl(e.target)) return;
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'o') {
+        e.preventDefault();
+        if (!locked) fileInput.current?.click();
+        return;
+      }
+      if (mod && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'p' && data) {
+        e.preventDefault();
+        printReport();
+        return;
+      }
+      if (mod || e.altKey) return;
+      if (e.key === '?') {
+        e.preventDefault();
+        openShortcuts();
+        return;
+      }
+      if (e.key === 'Escape' && panel !== 'notes') {
+        e.preventDefault();
+        closeUtilityPanel();
+        return;
+      }
+      const next = KEYBOARD_PANELS[e.key];
+      if (next && showSideTabs) {
+        if (next === 'notes' || ((next === 'versions' || next === 'feedback') ? versions.length > 0 : Boolean(data))) {
+          e.preventDefault();
+          showPanel(next);
+        }
+        return;
+      }
+      if (data && positions.length > 0 && panel === 'notes') {
+        const inNotes = e.target instanceof Element && !!e.target.closest('.margin-notes');
+        const isNext = e.key.toLowerCase() === 'j' || e.key === ']' || (inNotes && e.key === 'ArrowDown');
+        const isPrev = e.key.toLowerCase() === 'k' || e.key === '[' || (inNotes && e.key === 'ArrowUp');
+        if (isNext || isPrev) {
+          e.preventDefault();
+          const idx = currentPosition ? positions.indexOf(currentPosition) : -1;
+          const targetIdx = isNext
+            ? (idx < 0 ? 0 : Math.min(positions.length - 1, idx + 1))
+            : (idx <= 0 ? 0 : idx - 1);
+          const finding = positions[targetIdx]?.findings[0];
+          if (finding) select(finding.check.rule.id, finding.itemIndex);
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  });
 
   function select(id: string, item: number) {
     setPanel('notes');
     setFocusLocation(null);
     setSelected({ id, item });
+  }
+  function openShortcuts() {
+    if (toolsOpen) toolsButton.current?.focus({ preventScroll: true });
+    setToolsOpen(false);
+    setShortcutsOpen(true);
   }
   function showPanel(value: Panel) {
     setToolsOpen(false);
@@ -409,7 +492,15 @@ export default function App() {
   return <TeacherFeedbackProvider><div className="app-shell margin-app">
     <header className="review-masthead">
       <div className="masthead-left">
-        <div className="masthead-brand"><h1>论文审阅</h1></div>
+        <div className="masthead-brand">
+          <svg className="brand-emblem" width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <rect x="2.5" y="2" width="15" height="16" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+            <path d="M6 6.5h8M6 10h6M6 13.5h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+            <path d="M12.8 11.5l3.2-3.2 1.5 1.5-3.2 3.2-2 .5.5-2z" fill="var(--accent)"/>
+          </svg>
+          <h1>论文审阅</h1>
+          <span className="norm-pill" title={pack?.title || '学院撰写指南'}>学院硕士规范</span>
+        </div>
         {file && <span className="manuscript-name" title={file.name}>{file.name}</span>}
       </div>
 
@@ -431,7 +522,7 @@ export default function App() {
         <input ref={fileInput} type="file" accept=".pdf,.docx" hidden disabled={locked} onChange={e => {
           const f = e.target.files?.[0]; if (f) void inspect(f); e.target.value = '';
         }}/>
-        {file && <button type="button" className="upload-action" disabled={locked} onClick={() => fileInput.current?.click()}>
+        {file && <button type="button" className="upload-action" title="重新上传原稿 (⌘/Ctrl O)" disabled={locked} onClick={() => fileInput.current?.click()}>
           <Upload size={14}/><span>重新上传</span>
         </button>}
         <div className="tools-wrap" ref={toolsRoot} onBlur={e => {
@@ -441,12 +532,15 @@ export default function App() {
             <MoreHorizontal size={18}/>
           </button>
           {toolsOpen && <nav id="review-tools" className="tools-popover" aria-label="更多工具">
-            <div className="menu-section-label">审阅面板</div>
+            <div className="menu-section-label">审阅与导出</div>
             {Object.entries(UTILITY_TITLES).map(([id, name]) => (
               <button key={id} type="button" disabled={id === 'versions' || id === 'feedback' ? !versions.length : !data} onClick={() => showPanel(id as Panel)}>{name}</button>
             ))}
+            <button type="button" disabled={!data || locked} onClick={() => { printReport(); setToolsOpen(false); toolsButton.current?.focus(); }}>
+              <Printer size={14}/><span>打印 / 导出 PDF 报告</span>
+            </button>
             <button type="button" disabled={!data} onClick={() => { exportReport(); setToolsOpen(false); toolsButton.current?.focus(); }}>
-              <Download size={14}/><span>导出审阅记录</span>
+              <Download size={14}/><span>导出审阅记录 (JSON)</span>
             </button>
             {file && <button type="button" disabled={locked} onClick={() => void inspect(file)}>
               <RefreshCw size={14}/><span>重新检查当前文件</span>
@@ -476,6 +570,9 @@ export default function App() {
             }}>
               <CircleHelp size={14}/><span>使用说明</span>
             </button>
+            <button type="button" onClick={openShortcuts}>
+              <Keyboard size={14}/><span>键盘快捷键 (?)</span>
+            </button>
             <button type="button" onClick={() => showPanel('updates')}>
               <History size={14} aria-hidden="true"/><span>更新记录</span>
             </button>
@@ -490,7 +587,6 @@ export default function App() {
     <main className="reader-main">
       {error && <div role="alert" className="feedback error"><AlertCircle size={15}/><span>{error}</span><button type="button" aria-label="关闭错误提示" onClick={() => setError('')}><X size={14}/></button></div>}
       {busy && data && <div role="status" className="feedback"><LoaderCircle className="spin" size={15}/><span>{progress}</span></div>}
-      {notice && <div role="status" className="feedback"><Info size={15}/><span>{notice}</span><button type="button" aria-label="关闭提示" onClick={() => setNotice('')}><X size={14}/></button></div>}
       {updateAvailable && <div className="feedback"><Info size={15}/><span>有新版工作台。更新前可导出本次会话记录。</span><button type="button" className="secondary small" disabled={locked || modelState.phase === 'loading'} onClick={() => void activateUpdate.current?.(true)}>更新工作台</button></div>}
 
       <section
@@ -501,7 +597,7 @@ export default function App() {
       >
         <section className="document-panel" aria-label="论文原文">
           {data ? (
-            <DocumentViewer key={data.report.id} buffer={data.buffer} report={data.report} selected={selected} focusLocation={focusLocation} onSelect={select} onAnchorChange={leader.onAnchorChange}/>
+            <DocumentViewer key={data.report.id} buffer={data.buffer} report={data.report} selected={selected} focusLocation={focusLocation} shortcutsSuspended={modalOpen} onSelect={select} onAnchorChange={leader.onAnchorChange}/>
           ) : (
             <div
               className={`paper-scroll empty-desk${dragActive ? ' drag-active' : ''}`}
@@ -575,17 +671,17 @@ export default function App() {
           role="separator"
           aria-orientation="vertical"
           aria-label="拖拽调整左右分栏宽度，双击重置"
-          aria-valuemin={290}
+          aria-valuemin={310}
           aria-valuemax={620}
           aria-valuenow={sideWidth}
           tabIndex={0}
           title="拖拽调整分栏宽度（双击重置）"
           onPointerDown={startResize}
-          onDoubleClick={() => setSideWidth(388)}
+          onDoubleClick={() => setSideWidth(416)}
           onKeyDown={e => {
             if (e.key === 'ArrowLeft') { e.preventDefault(); setSideWidth(w => Math.min(620, w + 24)); }
-            else if (e.key === 'ArrowRight') { e.preventDefault(); setSideWidth(w => Math.max(290, w - 24)); }
-            else if (e.key === 'Home') { e.preventDefault(); setSideWidth(388); }
+            else if (e.key === 'ArrowRight') { e.preventDefault(); setSideWidth(w => Math.max(310, w - 24)); }
+            else if (e.key === 'Home') { e.preventDefault(); setSideWidth(416); }
           }}
         />
 
@@ -629,7 +725,10 @@ export default function App() {
       </section>
     </main>
 
+    {notice && <div role="status" className="toast-banner"><Info size={14}/><span>{notice}</span><button type="button" aria-label="关闭提示" onClick={() => setNotice('')}><X size={14}/></button></div>}
     {configOpen && <Configuration settings={settings} onApply={applySettings} onClose={() => setConfigOpen(false)} pack={pack} skill={skill} stage={stage} kind={kind} capability={capability} modelState={modelState} offlineReady={offlineReady} onLoadModel={() => void loadModel(settings)} onCancelModel={() => runtime.current.cancel()}/>}
     {guideOpen && <GettingStarted onClose={dismissGuide} onSample={() => void openThesisDemo()} sampleDisabled={locked}/>}
+    {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)}/>}
+    {printOpen && data && <PrintSummaryDialog report={data.report} onClose={() => setPrintOpen(false)}/>}
   </div></TeacherFeedbackProvider>;
 }

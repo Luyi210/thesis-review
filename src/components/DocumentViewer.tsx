@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, FileText, LoaderCircle, Minus, Plus } from 'lucide-react';
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import type { Location, Report } from '../domain/types';
+import { isEditingControl } from '../utils';
 import { wordRunOffsets, spanOffsets, renderedRange, clickedTextOffset } from './wordRanges';
 import { bindFloatingPictures, placeFloatingPictures, type WordPreviewNode } from './wordFloatingPictures';
 import { openPdf } from '../readers/pdf';
@@ -12,11 +13,12 @@ interface Props {
   report: Report;
   selected: MarkSelection | null;
   focusLocation?: Location | null;
+  shortcutsSuspended: boolean;
   onSelect: (id: string, item: number) => void;
   onAnchorChange?: (top: number | null) => void;
 }
 
-export function DocumentViewer({ buffer, report, selected, focusLocation, onSelect, onAnchorChange }: Props) {
+export function DocumentViewer({ buffer, report, selected, focusLocation, shortcutsSuspended, onSelect, onAnchorChange }: Props) {
   const isPdf = report.document.format === 'pdf';
   const [page, setPage] = useState(1);
   const [zoom, setZoom] = useState(1);
@@ -288,19 +290,31 @@ export function DocumentViewer({ buffer, report, selected, focusLocation, onSele
     fitAutomatically.current = false;
     setZoom(1);
   }
+  useEffect(() => {
+    if (shortcutsSuspended) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.isComposing || !(e.metaKey || e.ctrlKey) || e.altKey || isEditingControl(e.target)) return;
+      if (e.key === '=' || e.key === '+') { e.preventDefault(); changeZoom(.1); }
+      else if (e.key === '-') { e.preventDefault(); changeZoom(-.1); }
+      else if (e.key === '0') { e.preventDefault(); resetZoom(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [shortcutsSuspended]);
+
   const previewHint = isPdf ? '页码按文件实际顺序计算，含封面。' : '预览字体和分页可能与 Word/WPS 有差异。位置使用源段号。';
   return <div className="viewer-shell">
     <div className="viewer-toolbar">
       <div title={previewHint} className="viewer-title-group"><FileText size={14}/><span>{isPdf ? 'PDF 原页' : 'Word 预览'}</span><span className="viewer-local-pill">本机解析 · 未上传</span></div>
       <div className="viewer-controls">{isPdf && <>
-        <button aria-label="上一页" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16}/></button>
+        <button aria-label="上一页" title="上一页" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16}/></button>
         <span>{page} / {report.document.pageCount}</span>
-        <button aria-label="下一页" disabled={page >= (report.document.pageCount || 1)} onClick={() => setPage(p => p + 1)}><ChevronRight size={16}/></button><i/>
+        <button aria-label="下一页" title="下一页" disabled={page >= (report.document.pageCount || 1)} onClick={() => setPage(p => p + 1)}><ChevronRight size={16}/></button><i/>
       </>}
-        <button aria-label="缩小" disabled={zoom <= .4} onClick={() => changeZoom(-.1)}><Minus size={15}/></button>
-        <button type="button" className="zoom-reset" title="重置为 100%" onClick={resetZoom}>{Math.round(zoom * 100)}%</button>
-        <button aria-label="放大" disabled={zoom >= 2} onClick={() => changeZoom(.1)}><Plus size={15}/></button>
-        <button className="fit-width" onClick={() => { fitAutomatically.current = true; fitWidth(); }}>适应宽度</button>
+        <button aria-label="缩小" title="缩小 (⌘/Ctrl -)" disabled={zoom <= .4} onClick={() => changeZoom(-.1)}><Minus size={15}/></button>
+        <button type="button" className="zoom-reset" title="重置为 100% (⌘/Ctrl 0)" onClick={resetZoom}>{Math.round(zoom * 100)}%</button>
+        <button aria-label="放大" title="放大 (⌘/Ctrl +)" disabled={zoom >= 2} onClick={() => changeZoom(.1)}><Plus size={15}/></button>
+        <button className="fit-width" title="适应阅读宽度" onClick={() => { fitAutomatically.current = true; fitWidth(); }}>适应宽度</button>
       </div>
     </div>
     {layout?.floatingLayoutUncertain && <div className="mapping-note" role="status">

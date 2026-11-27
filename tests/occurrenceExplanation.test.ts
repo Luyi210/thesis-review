@@ -134,4 +134,19 @@ describe('browser model preparation from an annotation', () => {
     expect(loading).toContain('取消准备本机模型');
     expect(render({ phase: 'ready' })).toContain('用本地模型解释这一处');
   });
+
+  it('identifies the model that produced the displayed result', async () => {
+    const collegeSettings = { ...DEFAULT_SETTINGS, modelId: COLLEGE_MODEL_ID };
+    const raw = output(0, {
+      explanation: '所选文字的字号是 10.5 磅，要求字号为 12 磅。',
+      steps: ['选中对应文字，把字号设为 12 磅。'],
+    });
+    const collegeResult = await setup(raw, undefined, COLLEGE_MODEL_ID)
+      .explain(report, check, skill, collegeSettings, 0);
+    const baseResult = await setup(raw).explain(report, check, skill, DEFAULT_SETTINGS, 0);
+    expect(render({ modelId: DEFAULT_SETTINGS.modelId, results: { [collegeResult.targetKey]: collegeResult } }))
+      .toContain('学院微调版 · 第三轮试用');
+    expect(render({ modelId: COLLEGE_MODEL_ID, results: { [baseResult.targetKey]: baseResult } }))
+      .toContain(`本地模型 · ${DEFAULT_SETTINGS.modelId}`);
+  });
 });

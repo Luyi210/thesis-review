@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react';
-import { ArrowRight, Download, FileUp, GitCompare, LocateFixed, X } from 'lucide-react';
+import { Download, X } from 'lucide-react';
 import { collegeModel } from '../model/college';
 import { publicAsset } from '../utils';
 
@@ -21,7 +21,7 @@ export function GettingStarted({ onClose, onSample, sampleDisabled }: {
     <header>
       <div>
         <h2 id="guide-title">论文审阅使用说明</h2>
-        <p id="guide-summary">原稿和批注联动，逐处核对学院要求和修改建议。</p>
+        <p id="guide-summary">在本机浏览器对照学院指南，逐处核对原稿格式。</p>
         <a className="guide-word-download" href={publicAsset('manuals/thesis-workbench-guide-v0.8.3.docx')}
           download="学院论文审阅工作台使用说明书_v0.8.3.docx">
           <Download size={15} aria-hidden="true"/>
@@ -29,36 +29,30 @@ export function GettingStarted({ onClose, onSample, sampleDisabled }: {
         </a>
       </div>
       <button type="button" className="icon-button" aria-label="关闭使用说明" onClick={() => dialog.current?.close()}>
-        <X size={18} aria-hidden="true"/>
+        <X size={16} aria-hidden="true"/>
       </button>
     </header>
     <div className="guide-body">
       <ol className="guide-workflow">
         <li>
-          <span className="guide-step-icon"><FileUp size={17} aria-hidden="true"/></span>
+          <span className="guide-step-num" aria-hidden="true">01</span>
           <div>
-            <h3>选阶段，上传原稿</h3>
-            <p>从顶部选「开题」「中期」或「预答辩」。开题和中期还要选「阶段报告」或「论文稿」。打开 Word（.docx）或 PDF 即可在浏览器里检查格式。</p>
+            <h3>选阶段并打开原稿</h3>
+            <p>顶部选「开题」「中期」或「预答辩」，再按需选择材料类型。拖入或选择 Word（.docx）或 PDF 文件。</p>
           </div>
         </li>
         <li>
-          <span className="guide-step-icon"><LocateFixed size={17} aria-hidden="true"/></span>
+          <span className="guide-step-num" aria-hidden="true">02</span>
           <div>
-            <h3>定位批注，对照要求</h3>
-            <p>点原文标记，或从「全部批注」跳到对应位置。对照当前记录、学院要求和修改建议。遇到「待核对」时，先查看原稿。</p>
-            <div className="guide-example">
-              <span>字号示例</span>
-              <strong>当前 10.5 磅</strong>
-              <ArrowRight size={14} aria-hidden="true"/>
-              <strong>要求小四（12 磅）</strong>
-            </div>
+            <h3>用批注定位问题</h3>
+            <p>点原文标记或从「全部批注」跳到对应位置，查看实测值、修改建议和《撰写指南》原页。</p>
           </div>
         </li>
         <li>
-          <span className="guide-step-icon"><GitCompare size={17} aria-hidden="true"/></span>
+          <span className="guide-step-num" aria-hidden="true">03</span>
           <div>
-            <h3>修改后重传，核对两版</h3>
-            <p>在首页点「对比原稿与修订稿」可直接体验。检查自己的稿件时，先在「对比」里设定对照，修改后重新上传。老师可在批注下填写「教师反馈」。</p>
+            <h3>修改后重传对照</h3>
+            <p>首页点「对比原稿与修订稿」可直接体验。核对自己的稿件时，先在「对比」中设好对照版本，修改后重新上传。</p>
           </div>
         </li>
       </ol>
@@ -70,12 +64,11 @@ export function GettingStarted({ onClose, onSample, sampleDisabled }: {
       </section>
     </div>
     <footer>
-      <p>可从「更多工具」重新打开</p>
-      <button type="button" className="secondary" disabled={sampleDisabled} onClick={() => {
+      <button type="button" className="secondary small" disabled={sampleDisabled} onClick={() => {
         dialog.current?.close();
         onSample();
       }}>打开完整演示稿</button>
-      <button type="button" className="primary" ref={start} onClick={() => dialog.current?.close()}>开始使用</button>
+      <button type="button" className="primary small" ref={start} onClick={() => dialog.current?.close()}>开始使用</button>
     </footer>
   </dialog>;
 }
