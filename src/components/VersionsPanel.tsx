@@ -41,6 +41,13 @@ export function VersionsPanel({ versions, current, baseline, onBaseline, onView,
         )}
       </div>
 
+      {current && <div className="baseline-summary">
+        <span className="baseline-label">本版</span>
+        <span className="baseline-name" title={current.result.report.document.name}>
+          {current.result.report.document.name} · {time(current.result.report.createdAt)}
+        </span>
+      </div>}
+
       {(picking || !baseline) && versions.length > 0 && (
         <div className="baseline-controls">
           <select id="baseline-version" aria-label="对照版本" disabled={locked} value={baseline?.result.report.id || ''} onChange={e => { onBaseline(e.target.value || null); setPicking(false); }}>

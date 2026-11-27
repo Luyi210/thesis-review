@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { registerSW } from 'virtual:pwa-register';
-import { AlertCircle, ArrowRight, BookOpen, CircleHelp, Download, FileText, History, Info, LoaderCircle, MoreHorizontal, RefreshCw, Settings as SettingsIcon, Upload, X } from 'lucide-react';
+import { AlertCircle, ArrowRight, BookOpen, CircleHelp, Download, FileText, GitCompare, History, Info, LoaderCircle, MoreHorizontal, RefreshCw, Settings as SettingsIcon, Upload, X } from 'lucide-react';
 import { Configuration } from './components/Configuration';
 import { GettingStarted } from './components/GettingStarted';
 import { marginInitialSelection } from './domain/marginNotes';
@@ -28,12 +28,15 @@ const UTILITY_TITLES = { records: '完整检查记录', coverage: '图表与公�
 type Panel = 'notes' | 'updates' | keyof typeof UTILITY_TITLES;
 const GUIDE_SEEN_KEY = 'thesis-guide-seen-v1';
 
-const THESIS_DEMO = {
+const THESIS_DEMO_ORIGINAL = {
   url: 'samples/thesis-review-demo.docx',
   name: '合成演示_高校图书馆自习座位使用效率研究.docx',
-  cover: 'samples/thesis-review-demo-cover.jpg',
-  scope: { stage: 'predefense', kind: 'thesis' } as const,
 };
+const THESIS_DEMO_REVISION = {
+  url: 'samples/thesis-review-demo-revised.docx',
+  name: '合成演示_修订稿_高校图书馆自习座位使用效率研究.docx',
+};
+const THESIS_DEMO_SCOPE = { stage: 'predefense', kind: 'thesis' } as const;
 
 const SAMPLES = [
   { url: 'samples/mixed-run-format.docx', name: '合成样稿_同段不同字号.docx', label: '同段字号样稿.docx', short: 'Word 同段不同字号' },
@@ -43,6 +46,12 @@ const SAMPLES = [
   { url: 'samples/native-pdf.pdf', name: '合成样稿_PDF字号候选.pdf', label: 'PDF 原页样稿.pdf', short: 'PDF 原页样稿' },
   { url: 'samples/mixed-pdf.pdf', name: '合成样稿_混合页面图片声明.pdf', label: 'PDF 混合页.pdf', short: 'PDF 混合页' },
 ];
+
+async function readSample({ url, name }: { url: string; name: string }) {
+  const response = await fetch(publicAsset(url));
+  if (!response.ok) throw new Error(`示例稿读取失败（${name}）。`);
+  return new File([await response.arrayBuffer()], name);
+}
 
 function buildScopeGroups(pack: RulePack | null, stage: Stage, kind: MaterialKind, disabledRules: string[]) {
   if (!pack) return [];
@@ -250,21 +259,53 @@ export default function App() {
     const choice = ++pendingChoice.current;
     setToolsOpen(false);
     try {
-      const response = await fetch(publicAsset(target.url));
-      if (!response.ok) throw new Error('示例稿读取失败。');
-      const bytes = await response.arrayBuffer();
+      const chosen = await readSample(target);
       if (choice !== pendingChoice.current || busyRef.current || activeRequest.current !== null) return;
       if (scope) {
         setStage(scope.stage);
         setKind(scope.kind);
       }
-      await inspect(new File([bytes], target.name), scope);
+      await inspect(chosen, scope);
     } catch (e) {
       if (choice === pendingChoice.current) setError((e as Error).message);
     }
   }
   function sample(index: number) { return openSample(SAMPLES[index]); }
-  function openThesisDemo() { return openSample(THESIS_DEMO, THESIS_DEMO.scope); }
+  function openThesisDemo() { return openSample(THESIS_DEMO_ORIGINAL, THESIS_DEMO_SCOPE); }
+  async function compareThesisDemo() {
+    if (busyRef.current || generating || activeRequest.current !== null) return;
+    pendingChoice.current++;
+    busyRef.current = true;
+    setBusy(true);
+    setToolsOpen(false);
+    setError('');
+    setProgress('读取演示原稿与修订稿…');
+    const { stage: demoStage, kind: demoKind } = THESIS_DEMO_SCOPE;
+    try {
+      const [original, revised] = await Promise.all([readSample(THESIS_DEMO_ORIGINAL), readSample(THESIS_DEMO_REVISION)]);
+      const before = await runWorkflow(original, demoStage, demoKind, settings, message => setProgress(`原稿 · ${message}`));
+      const after = await runWorkflow(revised, demoStage, demoKind, settings, message => setProgress(`修订稿 · ${message}`));
+      const [baselineVersion, revisedVersion] = await Promise.all([captureVersion(before, settings), captureVersion(after, settings)]);
+      const demoBaselineId = before.report.id;
+      const withBaseline = retainVersions(versions, baselineVersion, demoBaselineId);
+      const retained = retainVersions(withBaseline.history, revisedVersion, demoBaselineId);
+      const dropped = withBaseline.dropped + retained.dropped;
+
+      setVersions(retained.history);
+      setBaselineId(demoBaselineId);
+      setStage(demoStage);
+      setKind(demoKind);
+      setFile(revised);
+      setData(after);
+      setPack(after.pack);
+      setSkill(after.skill);
+      setSelected(null);
+      clearExplanations();
+      setNotice(dropped ? `为控制内存，已释放${dropped}份较早的会话记录；演示的两版均已保留。` : '');
+      showPanel('versions');
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+    finally { busyRef.current = false; setBusy(false); setProgress(''); }
+  }
   function changeStage(value: Stage) {
     if (value === stage) return;
     setStage(value);
@@ -415,6 +456,9 @@ export default function App() {
             <button type="button" disabled={locked} onClick={() => void openThesisDemo()}>
               <FileText size={13} aria-hidden="true"/><span>完整论文演示</span>
             </button>
+            <button type="button" disabled={locked} onClick={() => void compareThesisDemo()}>
+              <GitCompare size={13} aria-hidden="true"/><span>对比原稿与修订稿</span>
+            </button>
             {SAMPLES.map((s, i) => (
               <button key={s.url} type="button" disabled={locked} onClick={() => void sample(i)}>
                 <FileText size={13}/><span>{s.short}</span>
@@ -445,6 +489,7 @@ export default function App() {
 
     <main className="reader-main">
       {error && <div role="alert" className="feedback error"><AlertCircle size={15}/><span>{error}</span><button type="button" aria-label="关闭错误提示" onClick={() => setError('')}><X size={14}/></button></div>}
+      {busy && data && <div role="status" className="feedback"><LoaderCircle className="spin" size={15}/><span>{progress}</span></div>}
       {notice && <div role="status" className="feedback"><Info size={15}/><span>{notice}</span><button type="button" aria-label="关闭提示" onClick={() => setNotice('')}><X size={14}/></button></div>}
       {updateAvailable && <div className="feedback"><Info size={15}/><span>有新版工作台。更新前可导出本次会话记录。</span><button type="button" className="secondary small" disabled={locked || modelState.phase === 'loading'} onClick={() => void activateUpdate.current?.(true)}>更新工作台</button></div>}
 
@@ -481,15 +526,22 @@ export default function App() {
                     {busy ? <LoaderCircle className="spin" size={15}/> : <Upload size={15}/>}
                     <span>{busy ? '检查中' : file ? '重新检查' : '选择文件'}</span>
                   </button>
-                  {!busy && <button type="button" className="thesis-demo-entry" disabled={locked} onClick={() => void openThesisDemo()}>
-                    <img src={publicAsset(THESIS_DEMO.cover)} alt="" width="55" height="74"/>
-                    <span className="thesis-demo-copy">
-                      <strong>打开完整演示稿</strong>
-                      <span>高校图书馆自习座位使用效率研究</span>
-                      <small>合成硕士论文 · 按预答辩论文检查版式与题注</small>
-                    </span>
-                    <ArrowRight size={17} aria-hidden="true"/>
-                  </button>}
+                  {!busy && <div className="thesis-demo-card">
+                    <button type="button" className="thesis-demo-entry" disabled={locked} onClick={() => void openThesisDemo()}>
+                      <img src={publicAsset('samples/thesis-review-demo-cover.jpg')} alt="" width="55" height="74"/>
+                      <span className="thesis-demo-copy">
+                        <strong>打开完整演示稿</strong>
+                        <span>高校图书馆自习座位使用效率研究</span>
+                        <small>合成硕士论文 · 按预答辩论文检查版式与题注</small>
+                      </span>
+                      <ArrowRight size={17} aria-hidden="true"/>
+                    </button>
+                    <button type="button" className="thesis-demo-compare" disabled={locked} onClick={() => void compareThesisDemo()}>
+                      <GitCompare size={15} aria-hidden="true"/>
+                      <span>对比原稿与修订稿</span>
+                      <ArrowRight size={15} aria-hidden="true"/>
+                    </button>
+                  </div>}
                 </div>
 
                 {!busy && <div className="scope-preview">
@@ -561,7 +613,7 @@ export default function App() {
                 <button type="button" ref={drawerClose} aria-label="返回页边批注" title="返回页边批注" onClick={closeUtilityPanel}><X size={16}/></button>
               </header>
               <div className="side-scroll">
-                {panel === 'versions' && <VersionsPanel versions={versions} current={currentVersion} baseline={baseline} onBaseline={setBaselineId} onView={viewVersion} locked={locked} onSelect={select}/>}
+                {panel === 'versions' && <VersionsPanel key={currentVersion?.result.report.id} versions={versions} current={currentVersion} baseline={baseline} onBaseline={setBaselineId} onView={viewVersion} locked={locked} onSelect={select}/>}
                 {panel === 'coverage' && data && <CoveragePanel report={data.report} onLocate={setFocusLocation}/>}
                 {panel === 'feedback' && <FeedbackPanel key={data?.report.id || 'history'} report={data?.report ?? null} onSelect={select}/>}
                 {panel === 'records' && data && <FullReport report={data.report} onSelect={select}/>}

@@ -52,7 +52,7 @@ export function GettingStarted({ onClose, onSample, sampleDisabled }: {
           <span className="guide-step-icon"><GitCompare size={17} aria-hidden="true"/></span>
           <div>
             <h3>修改后重传，核对两版</h3>
-            <p>在「对比」里将当前版本设为对照。在 Word 或 WPS 修改后「重新上传」，再回到「对比」核对变化。老师可在批注下填写「教师反馈」。</p>
+            <p>在首页点「对比原稿与修订稿」可直接体验。检查自己的稿件时，先在「对比」里设定对照，修改后重新上传。老师可在批注下填写「教师反馈」。</p>
           </div>
         </li>
       </ol>

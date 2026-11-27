@@ -17,6 +17,30 @@ async function load(name: string) {
   return captureVersion({ buffer, report, pack, skill }, DEFAULT_SETTINGS);
 }
 const wrong = await load('known-errors.docx'); const corrected = await load('corrected-format.docx');
+
+it('compares the original and revised full demonstration as two drafts of the same text', async () => {
+  const original = await load('thesis-review-demo.docx');
+  const revised = await load('thesis-review-demo-revised.docx');
+  expect(revised.result.report.document.paragraphs.map(p => p.text))
+    .toEqual(original.result.report.document.paragraphs.map(p => p.text));
+
+  const comparison = compareVersions(original, revised);
+  expect(comparison).toMatchObject({ comparable: true, sameFile: false });
+  expect(comparison.rows.map(row => [
+    row.id, row.kind,
+    row.before?.items.filter(item => item.status === 'fail').length,
+    row.after?.items.filter(item => item.status === 'fail').length,
+  ])).toEqual([
+    ['FMT-A4', 'persisting', 1, 1],
+    ['FMT-FONT', 'not_observed', 1, 0],
+    ['FMT-SIZE', 'not_observed', 3, 0],
+    ['FMT-LINE', 'not_observed', 1, 0],
+    ['FMT-SPACING', 'not_observed', 1, 0],
+    ['CAPTION-POSITION', 'persisting', 2, 2],
+    ['CAPTION-NUMBER', 'persisting', 2, 2],
+  ]);
+});
+
 describe('actual DOCX version comparison', () => {
   it('reports only the five previously known deviations as not observed in the corrected fixture', () => {
     const r = compareVersions(wrong, corrected); expect(r.comparable).toBe(true);

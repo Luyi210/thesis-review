@@ -324,21 +324,21 @@ def front_matter(doc):
     doc.add_paragraph("参考文献\t9", "TOC1")
 
 
-def write_body(doc, windows, areas, means, full_evenings):
+def write_body(doc, windows, areas, means, full_evenings, *, revised):
     chapter(doc, 0)
     subhead(doc, 0, 0)
     p = body(doc, "")
     p.add_run("当多个自习区服务同一批读者时，")
-    east_asian_font(p.add_run("座位供给的分时分布"), size=10.5)
+    east_asian_font(p.add_run("座位供给的分时分布"), size=12 if revised else 10.5)
     p.add_run("比简单总量更难观察。一处自习区接近满座，并不意味着其他区域也无法使用。记录分区差异，有助于在讨论增加座位前判断现有座位是否已经被均衡使用。")
     p = body(doc, "")
     p.add_run("本研究关注")
-    east_asian_font(p.add_run("各区座位的分时占用"), size=10)
+    east_asian_font(p.add_run("各区座位的分时占用"), size=12 if revised else 10)
     p.add_run("，并把")
-    east_asian_font(p.add_run("晚间接近满座的次数"), size=14)
+    east_asian_font(p.add_run("晚间接近满座的次数"), size=12 if revised else 14)
     p.add_run("与平均占用率分开报告，以便识别两种指标各自能回答的问题。")
     p = body(doc, "")
-    east_asian_font(p.add_run("研究场景设为一个虚构校园。"), name=HEITI)
+    east_asian_font(p.add_run("研究场景设为一个虚构校园。"), name=SONGTI if revised else HEITI)
     p.add_run("资料服务区位于入口附近，安静区和研讨区分列两侧。三处空间在容量和用途上有差异，因此统计时分别保留自己的分母。")
     subhead(doc, 0, 1)
     for text in [
@@ -357,13 +357,14 @@ def write_body(doc, windows, areas, means, full_evenings):
     ]:
         body(doc, text)
     subhead(doc, 1, 1)
-    body(doc, "本稿先核对分区容量，再在每个区内比较时段占用，最后用晚间满座次数补充平均情况。只要观察口径清楚，就能根据同一批模拟数值重复得到相同结果。", line=17)
+    body(doc, "本稿先核对分区容量，再在每个区内比较时段占用，最后用晚间满座次数补充平均情况。只要观察口径清楚，就能根据同一批模拟数值重复得到相同结果。", line=20 if revised else 17)
     p = body(doc, "")
     p.add_run("在展示阶段，")
     marked = p.add_run("按区域和时段分别排序")
-    tracking = OxmlElement("w:spacing")
-    tracking.set(qn("w:val"), "18")
-    marked._r.get_or_add_rPr().append(tracking)
+    if not revised:
+        tracking = OxmlElement("w:spacing")
+        tracking.set(qn("w:val"), "18")
+        marked._r.get_or_add_rPr().append(tracking)
     p.add_run("，读者可以追溯异常是出现在容量不同的区域之间，还是出现在同一区域的不同时间。")
     body(doc, "若需要解释为什么读者选择某一处，还应记录插座、距离、噪声等条件。这里的模拟只改变占用概率，讨论集中于如何观察与报告分区差异。")
 
@@ -422,8 +423,11 @@ def save_deterministic(doc, dest):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=Path(__file__).with_name("thesis-review-demo.docx"))
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--revised", action="store_true", help="Correct the seeded body-format findings for version comparison.")
     args = parser.parse_args()
+    default_name = "thesis-review-demo-revised.docx" if args.revised else "thesis-review-demo.docx"
+    output = args.output or Path(__file__).with_name(default_name)
     doc = Document()
     paper(doc.sections[0])
     build_styles(doc)
@@ -436,8 +440,8 @@ def main():
     props.comments = "Synthetic format-check demonstration with deterministic data."
     props.created = props.modified = datetime(2026, 1, 1, tzinfo=timezone.utc)
     front_matter(doc)
-    write_body(doc, *simulation())
-    save_deterministic(doc, args.output)
+    write_body(doc, *simulation(), revised=args.revised)
+    save_deterministic(doc, output)
 
 
 if __name__ == "__main__":

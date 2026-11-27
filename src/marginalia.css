@@ -581,23 +581,39 @@ a { color: var(--ink-secondary); text-underline-offset: 3px; }
   font-size: 13.5px;
   max-width: 420px;
 }
-.thesis-demo-entry {
+.thesis-demo-card {
+  width: min(440px, 100%);
+  margin-top: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+}
+.thesis-demo-entry, .thesis-demo-compare {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  width: min(440px, 100%);
-  margin-top: 20px;
-  padding: 9px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface-subtle);
-  color: var(--ink);
+  width: 100%;
+  border: 0;
+  background: transparent;
   text-align: left;
-  transition: background .14s, border-color .14s;
+  transition: background .14s;
 }
-.thesis-demo-entry:hover:not(:disabled) {
-  border-color: var(--line-strong);
+.thesis-demo-entry {
+  padding: 9px 12px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  color: var(--ink);
+}
+.thesis-demo-compare {
+  min-height: 44px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+.thesis-demo-entry:hover:not(:disabled), .thesis-demo-compare:hover:not(:disabled) {
   background: var(--surface-tinted);
 }
 .thesis-demo-entry img {
@@ -1202,6 +1218,7 @@ a { color: var(--ink-secondary); text-underline-offset: 3px; }
   gap: 8px;
   font-size: 12.5px;
 }
+.baseline-summary + .baseline-summary { margin-top: 5px; }
 .baseline-label { flex-shrink: 0; color: var(--muted); }
 .baseline-name {
   flex: 1;
